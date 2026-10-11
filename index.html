@@ -2966,7 +2966,7 @@ function markNav(){const p=document.body.dataset.page;nav.querySelectorAll('[dat
 const PH={home:'무엇이든 말하세요 · 예) 오늘 늦은 업무 정리해줘',offline:'예) 오마이왕국 이번 주 인건비 줄일 방법 · 아랑스키 강사 채용 공고 써줘',tasks:'예) 상진이한테 ERP 견적 금요일까지 보내라고 해줘',money:'예) 이번 달 고정비 얼마 나가? · 부가세 얼마 준비해?',brand:'예) 적자 사업부 원인 3가지',online:'예) +EV 이번 달 구독 매출 정리',people:'예) 이번 달 인건비 사업부별로',staff:'예) 오마이왕국 홀 직원 채용 공고 써줘',docs:'예) 만기 다가오는 계약 알려줘',exec:'예) 100억 목표까지 지금 속도면 몇 년?',group:'예) 사업부 손익 순위 한 줄 요약',close:'예) 9월 마감 빠진 거 뭐야'};
 
 /* ── 6·66·67·68·69 단축키 ── */
-function help(){const o=document.createElement('div');o.className='s2ov';o.id='s2ov';o.innerHTML=`<div class="s2box" role="dialog" aria-modal="true" aria-label="단축키"><h3 style="margin:0 0 10px">단축키</h3><div class="x6help"><kbd>Ctrl K</kbd><span>통합 검색</span><kbd>Ctrl J</kbd><span>AI 비서에게 말하기</span><kbd>/</kbd><span>검색</span><kbd>N</kbd><span>빠른 추가 (할 일·경비·메모)</span><kbd>Alt 1~9</kbd><span>메뉴 순서대로 이동</span><kbd>Esc</kbd><span>창·메뉴 닫기</span><kbd>?</kbd><span>이 도움말</span><kbd>더블클릭</kbd><span>숫자 복사</span></div></div>`;o.addEventListener('click',e=>{if(e.target===o)o.remove()});document.body.appendChild(o)}
+function help(){const o=document.createElement('div');o.className='s2ov';o.id='s2ov';o.innerHTML=`<div class="s2box" role="dialog" aria-modal="true" aria-label="단축키"><h3 style="margin:0 0 10px">단축키</h3><div class="x6help"><kbd>C</kbd><span>관제실</span><kbd>Ctrl K</kbd><span>통합 검색</span><kbd>Ctrl J</kbd><span>AI 비서에게 말하기</span><kbd>/</kbd><span>검색</span><kbd>N</kbd><span>빠른 추가 (할 일·경비·메모)</span><kbd>Alt 1~9</kbd><span>메뉴 순서대로 이동</span><kbd>Esc</kbd><span>창·메뉴 닫기</span><kbd>?</kbd><span>이 도움말</span><kbd>더블클릭</kbd><span>숫자 복사</span></div></div>`;o.addEventListener('click',e=>{if(e.target===o)o.remove()});document.body.appendChild(o)}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){nav.classList.remove('open');const o=$('cmd-out');if(o&&!o.querySelector('form'))o.hidden=true;if(mob()){document.body.classList.remove('x6dk');fab.textContent='💬'}return}
  if(typing(e.target)||e.ctrlKey||e.metaKey||e.isComposing)return;
  if(e.altKey&&/^[1-9]$/.test(e.key)){const B=[...nav.querySelectorAll('button[data-go]:not([data-fav])')].filter(b=>getComputedStyle(b).display!=='none'||b.classList.contains('x6h'));const b=B[+e.key-1];if(b){e.preventDefault();setPage(b.dataset.go)}return}
@@ -3182,6 +3182,333 @@ nav.querySelectorAll('[data-fav]').forEach(b=>{const i=b.querySelector('i');if(i
 run();
 /* 메뉴 순서 바뀐 뒤 접기·즐겨찾기 다시 그리기 */
 try{setPage(document.body.dataset.page)}catch(_){}
+})();
+
+/* ===== SIGMA 8 · 관제실 (그래프 + 자동 분석 + AI 해설 + 시뮬레이터 + 회의 모드) ===== */
+(function(){
+const td=()=>ymd(kst()),ym=()=>td().slice(0,7),own=()=>TEAM.owner&&!TEAM.viewAs;
+const mem=()=>document.body.classList.contains('member');
+const SER=['#2a78d6','#eb6834','#1baf7a','#eda100','#e87ba4','#008300','#6250d6','#e34948'];
+const SERD=['#3987e5','#d95926','#199e70','#c98500','#d55181','#008300','#9085e9','#e66767'];
+const dark=()=>!document.documentElement.classList.contains('lt');
+const sc=i=>(dark()?SERD:SER)[i%8];
+const fmt=v=>{v=+v||0;const a=Math.abs(v);return (v<0?'-':'')+(a>=1e8?(a/1e8).toFixed(a>=1e9?0:2).replace(/\.?0+$/,'')+'억':a>=1e4?(a<1e5?(a/1e4).toFixed(1).replace(/\.0$/,''):Math.round(a/1e4).toLocaleString())+'만':Math.round(a).toLocaleString())};
+const fin=(n,m)=>{try{return finOf(n,m)}catch(_){return {수입:0,지출:0,이익:0}}};
+const months=n=>{const d=kst(),A=[];for(let i=n-1;i>=0;i--){const x=new Date(d.getFullYear(),d.getMonth()-i,1);A.push(ymd(x).slice(0,7))}return A};
+const dim=()=>{const d=kst();return new Date(d.getFullYear(),d.getMonth()+1,0).getDate()};
+const LS={g(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(_){return d}},s(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(_){}}};
+const ic=k=>window.X7SVG?window.X7SVG(k):'';
+const ICO={crit:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17.5v.5"/></svg>',warn:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg>',info:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>',good:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>',spark:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/></svg>',tv:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>'};
+const LV={crit:['위험','var(--red)'],warn:['주의','var(--amber)'],info:['참고','var(--cyan)'],good:['좋음','var(--green)']};
+
+/* ── 페이지 등록 ── */
+PG.cockpit=['관제실','전 사업 숫자 · 그래프 · 자동 분석 · AI 해설'];
+{const first=document.querySelector('.mainc [data-pg~="home"]');const s=document.createElement('section');s.className='pgsec';s.dataset.pg='cockpit';s.innerHTML='<div id="x8"></div>';(first||document.querySelector('.mainc section')).before(s)}
+const nav=$('nav');{const home=nav.querySelector('button[data-go="home"]:not([data-fav])');const b=document.createElement('button');b.type='button';b.dataset.go='cockpit';b.innerHTML=`<i><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18a9 9 0 0 1 18 0"/><path d="M12 18l4-6"/><path d="M6 18h.01M18 18h.01M12 9v.01"/></svg></i><span>관제실</span>`;if(home)home.before(b);
+ // 모바일 하단: 관제실 · 오프라인 · 온라인 · 업무 · 돈 · 더보기
+ if(home&&home.hasAttribute('data-m')){home.removeAttribute('data-m');b.setAttribute('data-m','')}}
+const st=document.createElement('style');st.textContent=`
+body[data-page=cockpit] [data-pg]:not([data-pg~=cockpit]){display:none!important}
+#x8{--g:14px;display:grid;gap:var(--g)}
+.x8row{display:grid;gap:var(--g);grid-template-columns:repeat(12,minmax(0,1fr))}
+.x8c{background:var(--hull);border:1px solid var(--line);border-radius:16px;padding:16px 18px;min-width:0;position:relative}
+.x8c>h3{margin:0 0 2px;font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px}
+.x8c>h3 small{font-weight:500;color:var(--mute);font-size:12.5px}
+.x8c>.x8sub{color:var(--mute);font-size:12.5px;margin:0 0 10px}
+.x8tools{position:absolute;top:12px;right:12px;display:flex;gap:4px}
+.x8tools button{border:1px solid var(--line);background:var(--hull);color:var(--mute);border-radius:8px;font:inherit;font-size:12px;padding:3px 8px;cursor:pointer}
+.x8tools button:hover{color:var(--ice);border-color:var(--mute)}
+.s4{grid-column:span 4}.s5{grid-column:span 5}.s6{grid-column:span 6}.s7{grid-column:span 7}.s8{grid-column:span 8}.s12{grid-column:span 12}
+@media(max-width:1100px){.s4,.s5,.s6,.s7,.s8{grid-column:span 12}}
+.x8hero{display:grid;grid-template-columns:minmax(260px,360px) minmax(0,1fr);gap:22px;align-items:center}
+@media(max-width:760px){.x8hero{grid-template-columns:1fr}}
+.x8dial{width:100%;height:auto;display:block}
+.x8dial .tk{stroke:var(--line);stroke-width:2}.x8dial .tk.b{stroke:var(--mute);stroke-width:2.5}
+.x8dial .tl{fill:var(--mute);font-size:11px;font-weight:600}
+.x8dial .nd{transform-origin:150px 160px;transition:transform 1.4s cubic-bezier(.2,.9,.25,1.05)}
+@media(prefers-reduced-motion:reduce){.x8dial .nd{transition:none}}
+.x8big{font-size:clamp(30px,4vw,44px);font-weight:900;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.05}
+.x8brief{list-style:none;margin:10px 0 12px;padding:0;display:flex;flex-direction:column;gap:7px}
+.x8brief li{display:grid;grid-template-columns:18px 1fr;gap:8px;font-size:15px;line-height:1.45}
+.x8brief li i{color:var(--c);padding-top:2px}
+.x8ask{display:flex;gap:6px}.x8ask input{flex:1;min-width:0;font:inherit;font-size:15px;padding:11px 14px;border:1px solid var(--line);border-radius:12px;background:var(--hull2);color:var(--ice)}
+.x8ask button{border:0;border-radius:12px;background:var(--cyan);color:#fff;font:inherit;font-weight:800;padding:0 16px;cursor:pointer}
+.x8sug{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.x8sug button{border:1px solid var(--line);background:transparent;color:var(--ice);border-radius:99px;font:inherit;font-size:12.5px;padding:4px 10px;cursor:pointer}
+.x8kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:var(--g)}
+@media(max-width:1100px){.x8kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:560px){.x8kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.x8k{background:var(--hull);border:1px solid var(--line);border-radius:14px;padding:12px 14px;cursor:pointer;text-align:left;font:inherit;color:var(--ice);min-width:0}
+.x8k:hover{border-color:var(--mute)}
+.x8k small{display:block;color:var(--mute);font-size:12px}.x8k b{display:block;font-size:22px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin:2px 0}
+.x8k em{font-style:normal;font-size:12px;font-weight:700}
+.x8k svg{display:block;width:100%;height:28px;margin-top:4px}
+.x8chart{width:100%;height:auto;display:block;overflow:visible}
+.x8chart .ax{stroke:var(--line);stroke-width:1}.x8chart .gl{stroke:var(--line);stroke-width:1;stroke-dasharray:2 4}
+.x8chart text{fill:var(--mute);font-size:11px;font-variant-numeric:tabular-nums}
+.x8chart .lb{fill:var(--ice);font-size:11.5px;font-weight:700}
+.x8chart .hit{fill:transparent;cursor:crosshair}
+.x8chart [data-tip]{cursor:pointer}.x8chart [data-tip]:hover{filter:brightness(1.12)}
+.x8leg{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--mute);margin-top:6px}.x8leg span{display:inline-flex;align-items:center;gap:6px}.x8leg i{display:inline-block;width:14px;height:3px;border-radius:2px}.x8leg i.r{height:10px;width:10px;border-radius:3px}
+.x8tip{position:fixed;z-index:500;pointer-events:none;background:var(--hull);color:var(--ice);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12.5px;box-shadow:0 10px 30px rgba(0,0,0,.18);min-width:120px}
+.x8tip b{font-size:14px;font-variant-numeric:tabular-nums}.x8tip div{display:flex;align-items:center;gap:6px;justify-content:space-between}.x8tip i{display:inline-block;width:12px;height:3px;border-radius:2px}
+.x8ins{display:flex;flex-direction:column;gap:8px;max-height:520px;overflow:auto}
+.x8in{display:grid;grid-template-columns:22px 1fr;gap:10px;padding:10px 12px;border-radius:12px;background:var(--hull2);border-left:3px solid var(--c)}
+.x8in>i{color:var(--c);padding-top:1px}.x8in b{font-size:14.5px}.x8in p{margin:2px 0 6px;color:var(--mute);font-size:12.5px}
+.x8in .x8acts{display:flex;gap:6px;flex-wrap:wrap}.x8in .x8acts button{width:auto!important;flex:none!important;min-height:0!important}.x8in .x8acts button{border:1px solid var(--line);background:var(--hull);color:var(--ice);border-radius:99px;font:inherit;font-size:12px;padding:3px 10px;cursor:pointer}
+.x8lvl{display:inline-block;font-size:11px;font-weight:800;color:var(--c);margin-right:6px}
+.x8health{display:flex;flex-direction:column;gap:6px}
+.x8h{display:grid;grid-template-columns:minmax(90px,140px) 1fr 44px;gap:10px;align-items:center;font-size:13.5px;cursor:pointer;border-radius:8px;padding:2px 4px}.x8h:hover{background:var(--hull2)}
+.x8h .bar{height:10px;border-radius:99px;background:var(--hull2);overflow:hidden;display:flex;gap:2px}.x8h .bar i{display:block;height:100%}
+.x8h b{text-align:right;font-variant-numeric:tabular-nums}
+.x8ai{margin-top:10px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--cyan) 9%,var(--hull));border:1px solid color-mix(in srgb,var(--cyan) 30%,var(--line));font-size:13.5px;line-height:1.55}
+.x8ai small{display:block;color:var(--mute);font-size:11.5px;margin-top:4px}
+.x8sim label{display:grid;grid-template-columns:120px 1fr 74px;gap:10px;align-items:center;font-size:13.5px;margin:6px 0}
+.x8sim input[type=range]{width:100%;accent-color:var(--cyan)}.x8sim output{text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
+.x8sim .res{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}.x8sim .res div{background:var(--hull2);border-radius:10px;padding:8px 10px}.x8sim .res small{display:block;color:var(--mute);font-size:12px}.x8sim .res b{font-size:18px;font-variant-numeric:tabular-nums}
+.x8tl{position:relative;height:84px}body[data-page=cockpit] .x6toc{display:none!important}.x8tl .ln{position:absolute;left:0;right:0;top:40px;height:2px;background:var(--line)}
+.x8tl .ev{position:absolute;top:30px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11.5px;white-space:nowrap;cursor:default}
+.x8tl .ev i{width:12px;height:12px;border-radius:50%;background:var(--c);border:2px solid var(--hull)}.x8tl .ev b{font-size:12px}
+.x8tl .ev small{color:var(--mute)}.x8tl .ev.up{top:auto;bottom:44px;flex-direction:column-reverse}.x8tl{margin-top:30px}
+.x8live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:6px;vertical-align:1px;animation:x8p 2s ease-in-out infinite}@keyframes x8p{50%{opacity:.35}}@media(prefers-reduced-motion:reduce){.x8live{animation:none}}
+.x8modal{position:fixed;inset:0;z-index:450;background:rgba(10,14,20,.45);display:grid;place-items:center;padding:16px}.x8modal>div{background:var(--void);border-radius:18px;max-width:880px;width:100%;max-height:90vh;overflow:auto;padding:18px;display:grid;gap:12px}
+.x8empty{color:var(--mute);font-size:13px;padding:18px 0;text-align:center}
+.x8bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:2px}
+.x8bar .chip[aria-pressed=true]{background:var(--cyan);color:#fff;border-color:var(--cyan)}
+.x8tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px}.x8tbl th,.x8tbl td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:right}.x8tbl th:first-child,.x8tbl td:first-child{text-align:left}
+body.x8tv{overflow:hidden}body.x8tv .side,body.x8tv .cmdwrap,body.x8tv .top,body.x8tv .x6fab,body.x8tv .x6up,body.x8tv .x6toc{display:none!important}
+body.x8tv .shell{display:block}body.x8tv .mainc{max-width:none;padding:24px 32px}
+body.x8tv #x8>*{display:none}body.x8tv #x8>.x8on{display:grid}body.x8tv #x8>.x8on.x8c{display:block}
+body.x8tv #x8{font-size:1.15em}
+.x8tvbar{position:fixed;left:0;right:0;bottom:0;height:4px;background:var(--line);z-index:600;display:none}.x8tvbar i{display:block;height:100%;background:var(--cyan);width:0}
+body.x8tv .x8tvbar{display:block}
+.x8tvx{position:fixed;top:14px;right:18px;z-index:601;display:none}body.x8tv .x8tvx{display:block}
+@media print{body[data-page=cockpit] .x8tools,body[data-page=cockpit] .x8ask,body[data-page=cockpit] .x8sug{display:none!important}.x8c{break-inside:avoid}}
+`;document.head.appendChild(st);
+const tip=document.createElement('div');tip.className='x8tip';tip.hidden=true;document.body.appendChild(tip);
+const tvbar=document.createElement('div');tvbar.className='x8tvbar';tvbar.innerHTML='<i></i>';document.body.appendChild(tvbar);
+const tvx=document.createElement('button');tvx.type='button';tvx.className='chip x8tvx';tvx.textContent='회의 모드 끝내기 (Esc)';document.body.appendChild(tvx);
+
+/* ── 툴팁 (textContent로만 그림) ── */
+function showTip(x,y,title,rows){tip.replaceChildren();const h=document.createElement('small');h.textContent=title;h.style.color='var(--mute)';tip.appendChild(h);
+ rows.forEach(([c,name,val])=>{const d=document.createElement('div');const l=document.createElement('span');l.style.cssText='display:flex;gap:6px;align-items:center;color:var(--mute)';if(c){const i=document.createElement('i');i.style.background=c;l.appendChild(i)}l.appendChild(document.createTextNode(name));const v=document.createElement('b');v.textContent=val;d.append(l,v);tip.appendChild(d)});
+ tip.hidden=false;const r=tip.getBoundingClientRect();let L=x+14,T=y+14;if(L+r.width>innerWidth-8)L=x-r.width-14;if(T+r.height>innerHeight-8)T=y-r.height-14;tip.style.left=L+'px';tip.style.top=T+'px'}
+document.addEventListener('pointerleave',()=>tip.hidden=true);
+document.addEventListener('pointermove',e=>{const m=e.target.closest&&e.target.closest('[data-tip]');if(m&&m.closest('#x8')){try{const t=JSON.parse(m.dataset.tip);showTip(e.clientX,e.clientY,t[0],t[1])}catch(_){}}else if(!e.target.closest||!e.target.closest('.x8line'))tip.hidden=true});
+const tipAttr=(title,rows)=>`data-tip='${JSON.stringify([title,rows]).replace(/'/g,'&#39;').replace(/</g,'&lt;')}' tabindex="0"`;
+
+/* ── 차트 부품 ── */
+function spark(vals,c){const v=vals.map(x=>+x||0);if(v.length<2||!v.some(x=>x))return '';const mx=Math.max(...v),mn=Math.min(0,...v),W=120,H=28,sx=i=>i/(v.length-1)*W,sy=x=>H-2-(x-mn)/((mx-mn)||1)*(H-4);
+ return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><path d="M${v.map((x,i)=>sx(i).toFixed(1)+','+sy(x).toFixed(1)).join('L')}" fill="none" stroke="${c}" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/><circle cx="${sx(v.length-1)}" cy="${sy(v[v.length-1])}" r="2.5" fill="${c}"/></svg>`}
+// 선 그래프: series=[{n,c,v:[]}] labels=[] · 축 하나 · 십자선 + 모든 계열 툴팁
+const LINES={};let lid=0;
+function line(series,labels,o={}){const id='l'+(++lid),W=o.w||640,H=o.h||220,P={l:52,r:14,t:12,b:26},all=series.flatMap(s=>s.v.map(x=>+x||0));
+ if(!all.some(x=>x))return `<div class="x8empty">${o.empty||'아직 기록이 없어요 · 장부·매출이 쌓이면 자동으로 그려져요'}</div>`;
+ let mx=Math.max(...all),mn=Math.min(0,...all);const step=niceStep((mx-mn)/4);mx=Math.ceil(mx/step)*step;mn=Math.floor(mn/step)*step;
+ const sx=i=>P.l+i/((labels.length-1)||1)*(W-P.l-P.r),sy=v=>P.t+(mx-v)/((mx-mn)||1)*(H-P.t-P.b);
+ let g='';for(let v=mn;v<=mx+1e-6;v+=step)g+=`<line class="gl" x1="${P.l}" x2="${W-P.r}" y1="${sy(v)}" y2="${sy(v)}"/><text x="${P.l-8}" y="${sy(v)+4}" text-anchor="end">${fmt(v)}</text>`;
+ if(mn<0)g+=`<line class="ax" x1="${P.l}" x2="${W-P.r}" y1="${sy(0)}" y2="${sy(0)}"/>`;
+ const every=Math.ceil(labels.length/Math.max(3,Math.floor(W/70)));labels.forEach((l,i)=>{if(i%every===0||i===labels.length-1)g+=`<text x="${sx(i)}" y="${H-6}" text-anchor="middle">${esc(l)}</text>`});
+ const paths=series.map((s,k)=>{const d=s.v.map((x,i)=>sx(i).toFixed(1)+','+sy(+x||0).toFixed(1)).join('L');const last=s.v.length-1;
+  return (o.area&&k===0?`<path d="M${sx(0)},${sy(Math.max(mn,0))}L${d}L${sx(last)},${sy(Math.max(mn,0))}Z" fill="${s.c}" opacity=".10"/>`:'')+`<path d="M${d}" fill="none" stroke="${s.c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"${s.dash?' stroke-dasharray="5 5"':''}/>`+
+  `<circle cx="${sx(last)}" cy="${sy(+s.v[last]||0)}" r="4" fill="${s.c}" stroke="var(--hull)" stroke-width="2"/>`+(series.length<=4?`<text class="lb" x="${sx(last)-6}" y="${sy(+s.v[last]||0)-10}" text-anchor="end">${esc(s.n)} ${fmt(s.v[last])}</text>`:'')}).join('');
+ LINES[id]={series,labels,sx,P,W,H};
+ return `<svg class="x8chart x8line" data-line="${id}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.label||'추이 그래프')}">${g}${paths}<line class="xh" x1="0" x2="0" y1="${P.t}" y2="${H-P.b}" stroke="var(--mute)" stroke-width="1" opacity="0"/><rect class="hit" x="${P.l}" y="0" width="${W-P.l-P.r}" height="${H}"/></svg>${series.length>1?`<div class="x8leg">${series.map(s=>`<span><i style="background:${s.c}"></i>${esc(s.n)}</span>`).join('')}</div>`:''}`}
+function niceStep(r){if(!r)return 1;const p=Math.pow(10,Math.floor(Math.log10(r))),n=r/p;return (n<=1?1:n<=2?2:n<=5?5:10)*p}
+document.addEventListener('pointermove',e=>{const svg=e.target.closest&&e.target.closest('svg[data-line]');if(!svg)return;const L=LINES[svg.dataset.line];if(!L)return;const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const p=pt.matrixTransform(svg.getScreenCTM().inverse());
+ const n=L.labels.length,i=Math.max(0,Math.min(n-1,Math.round((p.x-L.P.l)/((L.W-L.P.l-L.P.r)/((n-1)||1)))));const xh=svg.querySelector('.xh');xh.setAttribute('x1',L.sx(i));xh.setAttribute('x2',L.sx(i));xh.setAttribute('opacity','.6');
+ showTip(e.clientX,e.clientY,L.labels[i],L.series.map(s=>[s.c,s.n,fmt(s.v[i])]))});
+document.addEventListener('pointerout',e=>{const svg=e.target.closest&&e.target.closest('svg[data-line]');if(svg&&!svg.contains(e.relatedTarget)){const xh=svg.querySelector('.xh');xh&&xh.setAttribute('opacity','0');tip.hidden=true}});
+// 목표 대비 가로 막대 (bullet): rows=[{n,v,t,go}]
+function bullet(rows,o={}){if(!rows.length)return '<div class="x8empty">사업이 없어요</div>';const mx=Math.max(1,...rows.map(r=>Math.max(+r.v||0,+r.t||0))),W=o.w||640,rh=30,H=rows.length*rh+6,L=Math.min(130,W*.3),R=56;
+ return `<svg class="x8chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="사업별 이번 달 매출과 목표">${rows.map((r,i)=>{const y=i*rh+6,w=(W-L-R)*((+r.v||0)/mx),tw=(W-L-R)*((+r.t||0)/mx),p=r.t?Math.round(r.v/r.t*100):null,c=p==null?'var(--mute)':p>=90?'var(--green)':p>=60?'var(--amber)':'var(--red)';
+  return `<g data-go8="${r.go||''}" ${tipAttr(r.n,[[c,'이번 달',fmt(r.v)+'원'],['','목표',r.t?fmt(r.t)+'원':'미설정'],['','달성',p==null?'—':p+'%']])}><rect x="0" y="${y-3}" width="${W}" height="${rh}" fill="transparent"/><text class="lb" x="${L-10}" y="${y+14}" text-anchor="end">${esc(r.n.length>Math.floor(L/13)?r.n.slice(0,Math.floor(L/13)-1)+'…':r.n)}</text><rect x="${L}" y="${y+4}" width="${W-L-R}" height="12" rx="6" fill="var(--hull2)"/><rect x="${L}" y="${y+4}" width="${Math.max(r.v?4:0,w)}" height="12" rx="6" fill="${c}"/>${r.t?`<rect x="${L+tw-1.5}" y="${y}" width="3" height="20" rx="1.5" fill="var(--ice)"/>`:''}<text x="${W-R+8}" y="${y+14}">${p==null?fmt(r.v):p+'%'}</text></g>`}).join('')}</svg><div class="x8leg"><span><i class="r" style="background:var(--green)"></i>90% 이상</span><span><i class="r" style="background:var(--amber)"></i>60~90%</span><span><i class="r" style="background:var(--red)"></i>60% 미만</span><span><i style="background:var(--ice);width:3px;height:12px"></i>목표</span></div>`}
+// 세로 막대: items=[{n,v,c}]
+function vbars(items,o={}){if(!items.length||!items.some(x=>+x.v))return `<div class="x8empty">${o.empty||'아직 기록이 없어요'}</div>`;const W=o.w||640,H=o.h||200,P={l:46,r:8,t:16,b:26},mx=Math.max(...items.map(x=>+x.v||0)),step=niceStep(mx/4),top=Math.ceil(mx/step)*step||1,bw=(W-P.l-P.r)/items.length,sy=v=>P.t+(top-v)/top*(H-P.t-P.b);
+ let g='';for(let v=0;v<=top+1e-6;v+=step)g+=`<line class="gl" x1="${P.l}" x2="${W-P.r}" y1="${sy(v)}" y2="${sy(v)}"/><text x="${P.l-6}" y="${sy(v)+4}" text-anchor="end">${fmt(v)}</text>`;
+ const every=Math.ceil(items.length/10);
+ return `<svg class="x8chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.label||'막대 그래프')}">${g}${items.map((x,i)=>{const h=Math.max(0,sy(0)-sy(+x.v||0)),X=P.l+i*bw+1;return `<g ${tipAttr(x.n,[[x.c||o.c||sc(0),o.unit||'값',fmt(x.v)+(o.suf||'')]])}><rect x="${X-1}" y="${P.t}" width="${bw}" height="${H-P.t-P.b}" fill="transparent"/><path d="M${X},${sy(0)}V${sy(0)-h+Math.min(4,h)}q0,-4 4,-4H${X+bw-6}q4,0 4,4V${sy(0)}Z" fill="${x.c||o.c||sc(0)}"/>${(i%every===0||i===items.length-1)?`<text x="${X+(bw-2)/2}" y="${H-8}" text-anchor="middle">${esc(x.n)}</text>`:''}</g>`}).join('')}</svg>`}
+// 가로 막대 (긴 이름): items=[{n,v,c,sub}]
+function hbars(items,o={}){if(!items.length)return `<div class="x8empty">${o.empty||'없음'}</div>`;const mx=Math.max(1,...items.map(x=>Math.abs(+x.v||0))),W=o.w||640,rh=28,H=items.length*rh+4,L=Math.min(120,W*.3),R=76;
+ return `<svg class="x8chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.label||'막대 그래프')}">${items.map((x,i)=>{const y=i*rh+4,w=(W-L-R)*Math.abs(+x.v||0)/mx;return `<g ${tipAttr(x.n,[[x.c||sc(0),o.unit||'금액',fmt(x.v)+(o.suf||'원')],...(x.sub?[['',x.sub[0],x.sub[1]]]:[])])}><rect x="0" y="${y-2}" width="${W}" height="${rh}" fill="transparent"/><text class="lb" x="${L-10}" y="${y+13}" text-anchor="end">${esc(x.n.length>Math.floor(L/13)?x.n.slice(0,Math.floor(L/13)-1)+'…':x.n)}</text><rect x="${L}" y="${y+3}" width="${Math.max(3,w)}" height="14" rx="4" fill="${x.c||sc(0)}"/><text x="${L+Math.max(3,w)+8}" y="${y+14}">${fmt(x.v)}${o.suf||''}</text></g>`}).join('')}</svg>`}
+// 깔때기
+function funnel(steps,o={}){const mx=Math.max(1,...steps.map(s=>+s[1]||0)),W=o.w||640,rh=34,H=steps.length*rh;return `<svg class="x8chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="가입 깔때기">${steps.map(([n,v],i)=>{const w=Math.max(6,(W-170)*(+v||0)/mx),x=(W-170-w)/2+70,prev=i?+steps[i-1][1]||0:0,cv=i&&prev&&(+v||0)<=prev?Math.round((+v||0)/prev*100)+'%':'';return `<g ${tipAttr(n,[[sc(i),'인원',(+v||0).toLocaleString()+'명'],...(cv?[['','앞 단계 대비',cv]]:[])])}><rect x="${x}" y="${i*rh+3}" width="${w}" height="${rh-8}" rx="6" fill="${sc(i)}" opacity="${1-i*.12}"/><text class="lb" x="10" y="${i*rh+22}">${esc(n)}</text><text x="${W-10}" y="${i*rh+22}" text-anchor="end">${(+v||0).toLocaleString()}${cv?' · '+cv:''}</text></g>`}).join('')}</svg>`}
+// 계기판 (100억 궤도) — 0~maxV, value, ghost(시뮬레이션)
+function dial(v,maxV,ghost){const cx=150,cy=160,R=120,a0=-200,a1=20,ang=x=>a0+(a1-a0)*Math.max(0,Math.min(1,x/maxV)),pt=(a,r)=>[cx+r*Math.cos(a*Math.PI/180),cy+r*Math.sin(a*Math.PI/180)];
+ let t='';for(let i=0;i<=50;i++){const a=a0+(a1-a0)*i/50,b=i%10===0,[x1,y1]=pt(a,R),[x2,y2]=pt(a,R-(b?14:7));t+=`<line class="tk${b?' b':''}" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`;if(b){const [lx,ly]=pt(a,R-28);t+=`<text class="tl" x="${lx.toFixed(1)}" y="${(ly+4).toFixed(1)}" text-anchor="middle">${i/5*10}억</text>`}}
+ const arc=(f,c,w)=>{const [x1,y1]=pt(a0,R+8),[x2,y2]=pt(ang(f),R+8),large=(ang(f)-a0)>180?1:0;return f>0?`<path d="M${x1.toFixed(1)},${y1.toFixed(1)}A${R+8},${R+8} 0 ${large} 1 ${x2.toFixed(1)},${y2.toFixed(1)}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`:''};
+ const rot=ang(v)-a0;
+ return `<svg class="x8dial" viewBox="0 0 300 210" role="img" aria-label="연 환산 매출 ${fmt(v)}원 · 목표 100억">${arc(maxV,'var(--hull2)',8)}${ghost!=null?arc(ghost,'color-mix(in srgb,var(--cyan) 35%,transparent)',8):''}${arc(v,'var(--cyan)',8)}${t}<g class="nd" style="transform:rotate(${rot}deg)" data-rot="${rot}"><line x1="${cx}" y1="${cy}" x2="${(cx+(R-20)*Math.cos(a0*Math.PI/180)).toFixed(1)}" y2="${(cy+(R-20)*Math.sin(a0*Math.PI/180)).toFixed(1)}" stroke="var(--ice)" stroke-width="3" stroke-linecap="round"/></g><circle cx="${cx}" cy="${cy}" r="7" fill="var(--ice)"/><circle cx="${cx}" cy="${cy}" r="3" fill="var(--hull)"/></svg>`}
+
+/* ── 데이터 모으기 ── */
+function D(){const off=(window.X5SUM?window.X5SUM():[]),onl=(window.X5ONL?window.X5ONL():[]);const biz=[...off.map(r=>({...r,pg:'offline'})),...onl.map(r=>({...r,pg:'online',T:r.T||0}))];
+ const M=months(12),gm=M.map(m=>{let a=0,b=0;DATA.사업부.forEach(s=>{const f=fin(s.이름,m);a+=f.수입;b+=f.이익});return {m,rev:a,pro:b}});
+ const cur=gm[gm.length-1];const day=kst().getDate(),pace=day?cur.rev/day*dim():0;
+ const O=openT(),lt=O.filter(late);let ap=0;try{ap=approvals().length}catch(_){}
+ const L=LEDGER.d||{},debt=(L.갚을돈||[]),recv=(L.받을돈||[]);
+ const oh=LIVE.ohmy||{},ev=(LIVE.plusev||{}).ev||{},mk=LIVE.marketing||{};
+ const offToday=off.reduce((a,r)=>a+(r.today||0),0);
+ return {off,onl,biz,M,gm,cur,pace,annual:pace*12,O,lt,ap,debt,recv,oh,ev,mk,offToday}}
+
+/* ── 자동 분석 (규칙 엔진 · AI 키 없이도 동작) ── */
+function insights(d){const I=[],add=(lv,t,p,acts)=>I.push({lv,t,p,acts:acts||[]});
+ const oh=d.oh;if(oh.월매출){const lab=Math.round((oh.인건비||0)/oh.월매출*100);if(lab>35)add(lab>45?'crit':'warn',`오마이왕국 인건비율 ${lab}%`,`기준 35% · 인건비 ${fmt(oh.인건비)} / 매출 ${fmt(oh.월매출)} · 35%로 맞추려면 인건비 ${fmt(oh.인건비-oh.월매출*.35)} 줄이거나 매출 ${fmt(oh.인건비/.35-oh.월매출)} 더 필요`,[['task','인력 배치 점검 업무 만들기','[오마이왕국] 인건비율 '+lab+'% → 35% 맞추기 (근무표 점검)'],['ai','AI에게 줄일 방법 묻기','오마이왕국 인건비율이 '+lab+'%야. 매출 '+fmt(oh.월매출)+', 인건비 '+fmt(oh.인건비)+'. 35%로 낮추는 구체적 방법 5가지'],['go','오프라인 사업 보기','offline']]);
+  const T=oh.월목표||0,pc=oh.월매출/kst().getDate()*dim();if(T&&pc<T)add('warn',`오마이왕국 월말 예상 ${fmt(pc)} · 목표의 ${Math.round(pc/T*100)}%`,`목표 ${fmt(T)} · 남은 ${dim()-kst().getDate()+1}일 동안 하루 ${fmt((T-oh.월매출)/(dim()-kst().getDate()+1))} 필요`,[['ai','AI에게 매출 올릴 방법','오마이왕국 이번 달 목표 '+fmt(T)+', 현재 '+fmt(oh.월매출)+'. 남은 기간 매출 올릴 이벤트 아이디어'],['go','오프라인 사업 보기','offline']]);
+  else if(T&&pc>=T)add('good',`오마이왕국 목표 달성 페이스`,`월말 예상 ${fmt(pc)} · 목표 ${fmt(T)}`);
+  const y=oh.전일;const yy=typeof y==='string'?(()=>{try{return JSON.parse(y)}catch(_){return {}}})():(y||{});if(yy.달성률>=150)add('good',`어제 오마이 매출 목표의 ${yy.달성률}%`,`${yy.일자||''} · 매출 ${fmt(yy.매출)} · 테이블 ${yy.테이블||0}`);
+  const hrs=oh.갱신?(Date.now()-new Date(oh.갱신.replace(' ','T')+':00+09:00').getTime())/36e5:0;if(hrs>36)add('warn','오마이 ERP 연동이 '+Math.round(hrs)+'시간째 멈춤','마지막 갱신 '+oh.갱신+' · ERP 연동 확인 필요')}
+ const ev=d.ev;if(ev.users!=null){if(ev.err24>0)add('crit',`+EV 24시간 오류 ${ev.err24}건`,'서비스 오류 확인 필요',[['task','오류 확인 업무 만들기','[+EV] 24시간 오류 '+ev.err24+'건 확인'],['go','온라인 사업 보기','online']]);
+  const s=(ev.sign30||[]).map(x=>+x[1]||0);if(s.length>=14){const a=s.slice(-7).reduce((p,c)=>p+c,0),b=s.slice(-14,-7).reduce((p,c)=>p+c,0);if(a!==b)add(a>b?'good':'info',`+EV 최근 7일 가입 ${a}명 (그 전 7일 ${b}명)`,a>b?'가입 늘어나는 중':'가입 줄어드는 중 · 홍보 점검')}
+  if(ev.users>0&&!ev.paid)add('info',`+EV 가입 ${ev.users}명 · 결제 0명`,'결제 전환 0% · 결제 심사·첫 결제 유도 확인',[['ai','AI에게 전환 방법','+EV 가입 '+ev.users+'명인데 결제 0명. 첫 결제 전환 방법']])}
+ const mk=d.mk;if(mk.목표조회수&&mk.최근조회수!=null){const left=Math.max(1,Math.ceil((new Date(mk.목표기한)-new Date(td()))/864e5)),need=mk.목표조회수-mk.최근조회수;if(need>0)add('info',`스레드 조회수 ${(+mk.최근조회수).toLocaleString()} / 목표 ${(+mk.목표조회수).toLocaleString()}`,`${mk.목표기한}까지 ${left}일 · 하루 ${Math.ceil(need/left).toLocaleString()}씩 더 필요`)}
+ const by={};d.lt.forEach(t=>{const k=nm(t.담당)||'미정';by[k]=(by[k]||0)+1});Object.entries(by).forEach(([k,n])=>{if(n>=3)add('warn',`${k} 지연 업무 ${n}건`,'한 사람에게 몰림 · 마감 다시 잡기 권장',[['go','업무 보기','tasks']])});
+ try{groupSum().R.filter(r=>r.수입>0&&r.이익<0).forEach(r=>add('crit',`${r.s.이름} 이번 달 적자 ${fmt(r.이익)}`,`수입 ${fmt(r.수입)} · 지출 ${fmt(r.지출)}`,[['go','그룹 경영 보기','group']]))}catch(_){}
+ const dm=d.debt.reduce((a,x)=>a+(+x.당월||0),0);if(dm>0)add('info',`이번 달 갚을 돈 ${fmt(dm)}`,d.debt.filter(x=>+x.당월>0).map(x=>x.이름+' '+fmt(x.당월)).join(' · '),[['go','돈 보기','money']]);
+ d.recv.filter(x=>+x.남은>=1e7).forEach(x=>add('info',`받을 돈 ${x.이름} ${fmt(x.남은)}`,'큰 금액 · 회수 일정 확인',[['task','회수 일정 업무 만들기','받을 돈 '+x.이름+' '+fmt(x.남은)+' 회수 일정 정하기']]));
+ (DOCS.list||[]).forEach(x=>{const m=String(x.만기||'').match(/\d{4}-\d{2}-\d{2}/);if(!m)return;const dd=Math.round((new Date(m[0])-new Date(td()))/864e5);if(dd>=0&&dd<=60)add(dd<=14?'warn':'info',`${x.제목||'계약'} 만기 D-${dd}`,'갱신·해지 통보 기한 확인',[['go','서류함 보기','docs']])});
+ const n=kst(),y0=n.getMonth()>=2?n.getFullYear():n.getFullYear()-1,open=new Date(y0,11,10),dd=Math.round((open-new Date(td()))/864e5);if(dd>0&&dd<=90)add(dd<=30?'warn':'info',`스키 시즌 개막 D-${dd}`,'아랑스키·체인·렌탈 시즌 준비 체크리스트 확인',[['go','오프라인 사업 보기','offline'],['ai','AI에게 남은 준비','스키 시즌 개막 D-'+dd+'. 아랑스키스쿨·렌탈샵 시즌 준비에서 지금 꼭 해야 할 일 7가지']]);
+ if(d.ap)add('warn',`결재 대기 ${d.ap}건`,'대표 결정이 필요한 항목',[['bell','결재 열기','']]);
+ const ord={crit:0,warn:1,info:2,good:3};return I.sort((a,b)=>ord[a.lv]-ord[b.lv])}
+function briefing(d,I){const L=[];L.push(['info',`이번 달 그룹 매출 ${fmt(d.cur.rev)}원 · 연 환산 페이스 ${fmt(d.annual)}원 (100억의 ${Math.round(d.annual/1e8)}%)`]);
+ const top=I.filter(x=>x.lv==='crit'||x.lv==='warn').slice(0,2);top.forEach(x=>L.push([x.lv,x.t]));const good=I.find(x=>x.lv==='good');if(good&&L.length<4)L.push(['good',good.t]);if(L.length<3)L.push(['info',`열린 업무 ${d.O.length}건 · 지연 ${d.lt.length}건`]);return L.slice(0,4)}
+function health(r){const T=r.T||0,p=T?Math.min(1,r.rev/T):(r.rev>0?.5:0),mg=r.rev?Math.max(0,Math.min(1,(r.pro||0)/r.rev/0.3)):0,iss=openT().filter(t=>window.X5HIT&&(window.X5HIT(r.s.id,t.프로젝트)||window.X5HIT(r.s.id,t.제목))).length,isc=Math.max(0,1-iss/6),live=LIVE[r.s.id],fr=live?1:(r.rev?.6:.2);
+ const parts=[[p*40,'목표 달성',sc(0)],[mg*20,'이익률',sc(2)],[isc*20,'이슈 적음',sc(6)],[fr*20,'데이터',sc(3)]];return {score:Math.round(parts.reduce((a,x)=>a+x[0],0)),parts}}
+
+/* ── 그리기 ── */
+const WMAP={};const cw=k=>WMAP[k]||640;
+let FIRST=true,SIM=LS.g('x8.sim',{oh:0,lab:0,ns:0,nsr:30000000}),RANGE=LS.g('x8.range',12),AIQ='';
+const cardTools=(k)=>`<div class="x8tools"><button type="button" data-x8ai="${k}" title="이 그래프 AI 해설">AI 해설</button><button type="button" data-x8tbl="${k}" title="표로 보기">표</button><button type="button" data-x8png title="그림으로 저장">저장</button></div>`;
+function html(){const d=D(),I=insights(d),B=briefing(d,I),M=d.M.slice(-RANGE),G=d.gm.slice(-RANGE);
+ const simAnnual=simCalc(d).annual;
+ const kp=(l,v,sub,c,go,sp)=>`<button type="button" class="x8k" data-x6go="${go}"><small>${l}</small><b${c?` style="color:${c}"`:''}>${v}</b>${sub?`<em style="color:var(--mute);font-weight:600">${sub}</em>`:''}${sp||''}</button>`;
+ const prev=d.gm[d.gm.length-2]||{rev:0},mom=prev.rev?Math.round((d.cur.rev-prev.rev)/prev.rev*100):null;
+ const debtLeft=d.debt.reduce((a,x)=>a+(+x.남은||0),0),recvLeft=d.recv.reduce((a,x)=>a+Math.max(0,+x.남은||0),0);
+ const visits=(d.ev.visits14||[]).map(x=>+x[1]||0);
+ const people=Object.entries(SEATS).map(([k,n])=>{const A=d.O.filter(t=>t.담당===k);return {n,late:A.filter(late).length,open:A.length-A.filter(late).length,done:((TEAM.todo||[]).filter(x=>x.완료&&x.담당===k&&(x.완료일||'')>=ymd(new Date(kst().getTime()-6*864e5)))).length}});
+ const evs=timeline();
+ return `
+<div class="x8row" data-x8s="hero"><div class="x8c s12"><div class="x8hero"><div>${dial(d.annual,1e10,SIM.on?simAnnual:null)}<div style="text-align:center;margin-top:-6px"><div class="x8big">${fmt(d.annual)}<small style="font-size:.45em;font-weight:700;color:var(--mute)"> 원 / 년</small></div><small style="color:var(--mute)">이번 달 페이스로 1년 환산 · 목표 100억${SIM.on?` · 시뮬레이션 ${fmt(simAnnual)}`:''}</small></div></div>
+<div><h3 style="margin:0;font-size:15px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${ICO.spark} 오늘의 자동 브리핑 <small style="color:var(--mute);font-weight:500"><span class="x8live"></span>LIVE · ${esc(nowStr?nowStr():'')}</small><span style="margin-left:auto;display:flex;gap:4px"><button type="button" class="chip" data-x8say>브리핑 듣기</button><button type="button" class="chip" data-x8print>보고서 인쇄</button></span></h3>
+<ul class="x8brief">${B.map(([lv,t])=>`<li style="--c:${LV[lv][1]}"><i>${ICO[lv]}</i><span>${esc(t)}</span></li>`).join('')}</ul>
+<form class="x8ask" id="x8ask"><input name="q" placeholder="물어보면 그래프로 답해요 · 예) 오마이 6개월 매출" autocomplete="off" value="${esc(AIQ)}"><button type="button" data-x8mic title="말로 묻기" aria-label="말로 묻기" style="background:var(--hull2);color:var(--ice);border:1px solid var(--line)">말로</button><button type="submit">보기</button></form>
+<div class="x8sug">${['그룹 12개월 매출','사업별 이번 달 비교','+EV 가입 추이','스레드 조회수','갚을 돈 현황','지연 업무 누가 많아'].map(q=>`<button type="button" data-x8q="${q}">${q}</button>`).join('')}<button type="button" data-x8tv style="border-color:var(--cyan);color:var(--cyan)">회의 모드</button></div>
+<div id="x8ans"></div></div></div></div></div>
+<div class="x8kpis" data-x8s="kpi">${kp('이번 달 그룹 매출',fmt(d.cur.rev),mom==null?'':`지난달 대비 ${mom>=0?'+':''}${mom}%`,'','group',spark(G.map(x=>x.rev),sc(0)))}${kp('이번 달 영업이익',fmt(d.cur.pro),d.cur.rev?`이익률 ${Math.round(d.cur.pro/d.cur.rev*100)}%`:'',d.cur.pro<0?'var(--red)':'','group',spark(G.map(x=>x.pro),sc(2)))}${kp('오프라인 오늘 매출',fmt(d.offToday),d.oh.오늘&&d.oh.오늘.목표?`오마이 목표의 ${Math.round((d.oh.오늘.매출||0)/d.oh.오늘.목표*100)}%`:'','','offline')}${kp('+EV 방문 (14일)',visits.reduce((a,b)=>a+b,0).toLocaleString(),`가입 ${d.ev.users||0} · 결제 ${d.ev.paid||0}`,'','online',spark(visits,sc(1)))}${kp('늦은 업무',d.lt.length+'건',`열린 업무 ${d.O.length}건`,d.lt.length?'var(--red)':'','tasks')}${kp('남은 부채',fmt(debtLeft),`받을 돈 ${fmt(recvLeft)}`,'','money')}</div>
+<div class="x8bar" data-x8s="kpi"><small style="color:var(--mute)">기간</small>${[3,6,12].map(n=>`<button type="button" class="chip" data-x8r="${n}" aria-pressed="${RANGE===n}">${n}개월</button>`).join('')}</div>
+<div class="x8row" data-x8s="trend"><div class="x8c s7">${cardTools('trend')}<h3>그룹 매출 · 영업이익 <small>최근 ${RANGE}개월</small></h3><p class="x8sub">손가락·마우스를 올리면 달마다 숫자</p>${line([{n:'매출',c:sc(0),v:G.map(x=>x.rev)},{n:'영업이익',c:sc(2),v:G.map(x=>x.pro)}],M.map(m=>m.slice(2).replace('-','.')),{area:1,label:'그룹 월별 매출과 영업이익',w:cw('trend')})}<div data-x8out="trend"></div></div>
+<div class="x8c s5">${cardTools('bullet')}<h3>사업별 이번 달 · 목표 대비</h3><p class="x8sub">막대 = 매출 · 세로선 = 목표 · 누르면 그 사업 화면</p>${bullet(d.biz.map(r=>({n:r.s.이름,v:r.rev,t:r.T,go:r.pg})),{w:cw('bullet')})}<div data-x8out="bullet"></div></div></div>
+<div class="x8row" data-x8s="ins"><div class="x8c s7"><h3>${ICO.spark} 자동 분석 <small>${I.length}건 · 숫자 근거와 바로 할 일</small></h3><p class="x8sub">규칙 기반 분석은 항상 돌아가고, AI 해설은 AI 연결 후 더 깊어져요</p><div class="x8ins">${I.map((x,i)=>`<div class="x8in" style="--c:${LV[x.lv][1]}"><i>${ICO[x.lv]}</i><div><b><span class="x8lvl">${LV[x.lv][0]}</span>${esc(x.t)}</b><p>${esc(x.p)}</p>${x.acts.length?`<div class="x8acts">${x.acts.map(([k,l,v],j)=>`<button type="button" data-x8act="${i}:${j}">${esc(l)}</button>`).join('')}</div>`:''}</div></div>`).join('')||'<div class="x8empty">지금 걸리는 게 없어요</div>'}</div></div>
+<div class="x8c s5">${cardTools('health')}<h3>사업 건강도 <small>100점</small></h3><p class="x8sub">목표 40 · 이익률 20 · 이슈 20 · 데이터 20 · 누르면 사업 상세</p><div class="x8health">${d.biz.map(r=>{const h=health(r);return {r,h}}).sort((a,b)=>a.h.score-b.h.score).map(({r,h})=>`<div class="x8h" data-x8biz="${r.s.id}" ${tipAttr(r.s.이름+' '+h.score+'점',h.parts.map(p=>[p[2],p[1],Math.round(p[0])+'점']))}><span>${esc(r.s.이름)}</span><div class="bar">${h.parts.map(p=>`<i style="width:${p[0]}%;background:${p[2]}"></i>`).join('')}</div><b style="color:${h.score>=70?'var(--green)':h.score>=40?'var(--amber)':'var(--red)'}">${h.score}</b></div>`).join('')}</div><div class="x8leg">${['목표 달성','이익률','이슈 적음','데이터'].map((n,i)=>`<span><i class="r" style="background:${sc([0,2,6,3][i])}"></i>${n}</span>`).join('')}</div><div data-x8out="health"></div></div></div>
+<div class="x8row" data-x8s="live">
+<div class="x8c s4">${cardTools('ohmy')}<h3>오마이왕국 오늘</h3><p class="x8sub">${esc((d.oh.오늘||{}).일자||'')} · 갱신 ${esc(d.oh.갱신||'—')}</p>${d.oh.월매출!=null?`${(()=>{const o=d.oh.오늘||{},p=o.목표?Math.round((o.매출||0)/o.목표*100):0;return `<div class="x8big" style="font-size:32px">${fmt(o.매출||0)}<small style="font-size:.45em;color:var(--mute)"> / ${fmt(o.목표||0)}</small></div><div class="s2bar" style="margin:8px 0"><i style="width:${Math.min(100,p)}%;background:${p>=90?'var(--green)':p>=60?'var(--amber)':'var(--red)'}"></i></div>`})()}${vbars([['월 매출',d.oh.월매출,sc(0)],['매출이익',d.oh.매출이익,sc(2)],['인건비',d.oh.인건비,sc(1)],['지출',d.oh.지출,sc(3)],['영업이익',d.oh.영업이익,sc(6)]].map(([n,v,c])=>({n,v,c})),{h:170,label:'오마이 이번 달 구성',unit:'금액',suf:'원',w:cw('ohmy')})}`:'<div class="x8empty">오마이 ERP 연동 대기</div>'}<div data-x8out="ohmy"></div></div>
+<div class="x8c s4">${cardTools('evsign')}<h3>+EV 가입 · 방문</h3><p class="x8sub">최근 30일 누적 가입 · 14일 방문</p>${(()=>{const s=d.ev.sign30||[];return s.length?line([{n:'가입 누적',c:sc(0),v:s.map(x=>+x[1]||0)},{n:'점주',c:sc(1),v:s.map(x=>+x[2]||0)}],s.map(x=>String(x[0]).slice(-5)),{h:170,label:'+EV 가입 추이',w:cw('evsign')}):'<div class="x8empty">+EV 연동 대기</div>'})()}${funnel([['방문(오늘)',d.ev.visitors_today],['가입',d.ev.users],['체험',d.ev.trial],['결제',d.ev.paid]],{w:cw('evsign')})}<div data-x8out="evsign"></div></div>
+<div class="x8c s4">${cardTools('threads')}<h3>스레드 조회수</h3><p class="x8sub">${esc(d.mk.계정||'')} · 목표 ${(+d.mk.목표조회수||0).toLocaleString()} (${esc(d.mk.목표기한||'')})</p>${(()=>{const t=d.mk.추이||[];return t.length?line([{n:'조회수',c:sc(6),v:t.map(x=>+x.조회수||0)},...(d.mk.목표조회수?[{n:'목표',c:'var(--mute)',v:t.map(()=>+d.mk.목표조회수),dash:1}]:[])],t.map(x=>String(x.날짜).slice(5)),{h:190,label:'스레드 조회수 추이',w:cw('threads')}):'<div class="x8empty">스레드 연동 대기</div>'})()}<div data-x8out="threads"></div></div></div>
+<div class="x8row" data-x8s="money">
+<div class="x8c s6">${cardTools('debt')}<h3>갚을 돈 <small>남은 금액 · 이번 달 상환</small></h3>${hbars(d.debt.slice().sort((a,b)=>(+b.남은||0)-(+a.남은||0)).map((x,i)=>({n:x.이름,v:+x.남은||0,c:x.분류==='세금'?sc(1):sc(0),sub:['이번 달',fmt(x.당월)+'원']})),{label:'갚을 돈',empty:'장부 연동 대기',w:cw('debt')})}<div class="x8leg"><span><i class="r" style="background:${sc(0)}"></i>대출</span><span><i class="r" style="background:${sc(1)}"></i>세금</span></div><div data-x8out="debt"></div></div>
+<div class="x8c s6"><h3>다가오는 날짜</h3><p class="x8sub">세금 · 시즌 · 계약 만기 · 90일</p>${evs.length?`<div class="x8tl"><div class="ln"></div>${evs.map((e,i)=>`<div class="ev${i&&e.p-evs[i-1].p<16&&!evs[i-1].up?(e.up=1,' up'):''}" style="left:${Math.max(4,Math.min(96,e.p))}%;--c:${e.c}" ${tipAttr(e.n,[[e.c,e.d,'D-'+e.dd]])}><i></i><b>D-${e.dd}</b><small>${esc(e.n.length>6?e.n.slice(0,6)+'…':e.n)}</small></div>`).join('')}</div>`:'<div class="x8empty">90일 안에 없음</div>'}
+<h3 style="margin-top:8px" data-x8w="people">사람별 업무 <small>열린 · 지연 · 이번 주 완료</small></h3>${(()=>{const W=cw('people'),rh=30,H=people.length*rh+4,L=70,mx=Math.max(1,...people.map(p=>p.open+p.late+p.done));return `<svg class="x8chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="사람별 업무">${people.map((p,i)=>{const y=i*rh+4,u=(W-L-60)/mx;let x=L;const seg=[[p.open,sc(0),'열린'],[p.late,'var(--red)','지연'],[p.done,sc(2),'완료']].map(([v,c,n])=>{const w=v*u,r=v?`<rect x="${x}" y="${y+3}" width="${Math.max(0,w-2)}" height="14" rx="3" fill="${c}"/>`:'';x+=w;return r}).join('');return `<g data-x6go="tasks" ${tipAttr(p.n,[[sc(0),'열린',p.open+'건'],['var(--red)','지연',p.late+'건'],[sc(2),'이번 주 완료',p.done+'건']])}><rect x="0" y="${y}" width="${W}" height="${rh}" fill="transparent"/><text class="lb" x="${L-10}" y="${y+14}" text-anchor="end">${esc(p.n)}</text>${seg}<text x="${x+8}" y="${y+14}">${p.open+p.late}건</text></g>`}).join('')}</svg><div class="x8leg"><span><i class="r" style="background:${sc(0)}"></i>열린</span><span><i class="r" style="background:var(--red)"></i>지연</span><span><i class="r" style="background:${sc(2)}"></i>이번 주 완료</span></div>`})()}</div></div>
+<div class="x8row" data-x8s="sim"><div class="x8c s12 x8sim"><h3>시뮬레이터 <small>움직이면 위 계기판에 반투명으로 겹쳐 보여요</small></h3>
+<label>오마이 매출 <input type="range" min="-30" max="50" step="5" value="${SIM.oh}" data-x8sim="oh"><output>${SIM.oh>0?'+':''}${SIM.oh}%</output></label>
+<label>인건비 줄이기 <input type="range" min="0" max="20" step="1" value="${SIM.lab}" data-x8sim="lab"><output>-${SIM.lab}%p</output></label>
+<label>새 매장 <input type="range" min="0" max="10" step="1" value="${SIM.ns}" data-x8sim="ns"><output>${SIM.ns}곳</output></label>
+<label>매장당 월매출 <input type="range" min="10000000" max="100000000" step="5000000" value="${SIM.nsr}" data-x8sim="nsr"><output>${fmt(SIM.nsr)}</output></label>
+${(()=>{const s=simCalc(d);return `<div class="res"><div><small>연 매출 (시뮬)</small><b>${fmt(s.annual)}</b></div><div><small>100억까지</small><b>${s.annual>=1e10?'달성':fmt(1e10-s.annual)}</b></div><div><small>오마이 월 영업이익 변화</small><b style="color:${s.dPro>=0?'var(--green)':'var(--red)'}">${s.dPro>=0?'+':''}${fmt(s.dPro)}</b></div></div>`})()}
+<div class="x8bar" style="margin-top:8px"><button type="button" class="chip" data-x8simon aria-pressed="${!!SIM.on}">${SIM.on?'계기판에 표시 중':'계기판에 겹쳐 보기'}</button><button type="button" class="chip" data-x8simreset>처음으로</button><button type="button" class="chip" data-x8ai="sim">AI 해설</button></div><div data-x8out="sim"></div></div></div>`}
+function simCalc(d){const oh=d.oh||{},base=d.annual,ohM=+oh.월매출||0,ohPace=ohM?ohM/kst().getDate()*dim():0,dOh=ohPace*SIM.oh/100,dNew=SIM.ns*SIM.nsr,labCut=ohPace*(1+SIM.oh/100)*SIM.lab/100;return {annual:base+(dOh+dNew)*12,dPro:dOh*.45+labCut}}
+function timeline(){const t=new Date(td()),E=[],add=(n,dt,c)=>{const dd=Math.round((dt-t)/864e5);if(dd>=0&&dd<=90)E.push({n,d:ymd(dt),dd,c,p:dd/90*100})};const y=t.getFullYear();
+ [[0,25],[3,25],[6,25],[9,25]].forEach(([m,dd])=>[y,y+1].forEach(Y=>add('부가세 신고',new Date(Y,m,dd),'var(--amber)')));[y,y+1].forEach(Y=>{add('종합소득세',new Date(Y,4,31),'var(--amber)');add('스키 개막',new Date(Y,11,10),sc(0));add('시즌 마감',new Date(Y,1,28),sc(0))});
+ const m10=new Date(t.getFullYear(),t.getMonth()+1,10);add('원천세·4대보험',m10,sc(6));
+ (DOCS.list||[]).forEach(x=>{const m=String(x.만기||'').match(/\d{4}-\d{2}-\d{2}/);if(m)add((x.제목||'계약')+' 만기',new Date(m[0]),'var(--red)')});
+ const seen=new Set();return E.sort((a,b)=>a.dd-b.dd).filter(e=>{const k=e.n+e.d;if(seen.has(k))return false;seen.add(k);return true}).slice(0,7)}
+
+/* ── 질문 → 그래프 (규칙 해석 · AI 연결 시 해설 추가) ── */
+function answer(q){const d=D(),Q=q.toLowerCase(),n=(q.match(/(\d+)\s*개월/)||[])[1],N=Math.min(24,+n||(/(년|12)/.test(q)?12:6)),M=months(N),lab=M.map(m=>m.slice(2).replace('-','.'));
+ const biz=DATA.사업부.find(s=>window.X5HIT&&window.X5HIT(s.id,Q)||Q.includes(s.이름.toLowerCase()));
+ const metric=/이익/.test(q)?'이익':/지출|비용/.test(q)?'지출':'수입',mName={수입:'매출',이익:'영업이익',지출:'지출'}[metric];
+ if(/부채|갚을|대출|빚/.test(q))return ['갚을 돈 현황',hbars(d.debt.map(x=>({n:x.이름,v:+x.남은||0,c:x.분류==='세금'?sc(1):sc(0),sub:['이번 달',fmt(x.당월)+'원']})),{empty:'장부 연동 대기'}),{items:d.debt.map(x=>[x.이름,+x.남은||0,+x.당월||0])}];
+ if(/받을/.test(q))return ['받을 돈',hbars(d.recv.map(x=>({n:x.이름,v:+x.남은||0,c:sc(2)}))),{items:d.recv.map(x=>[x.이름,+x.남은||0])}];
+ if(/가입|\+ev|플러스/.test(Q)&&!/매출/.test(q)){const s=d.ev.sign30||[];return ['+EV 가입 추이',line([{n:'가입 누적',c:sc(0),v:s.map(x=>+x[1]||0)},{n:'점주',c:sc(1),v:s.map(x=>+x[2]||0)}],s.map(x=>String(x[0]).slice(-5))),{months:s.map(x=>String(x[0])),values:s.map(x=>+x[1]||0),owners:s.map(x=>+x[2]||0)}]}
+ if(/방문/.test(q)){const v=d.ev.visits14||[];return ['+EV 방문 14일',vbars(v.map(x=>({n:String(x[0]).slice(5),v:+x[1]||0})),{unit:'방문',suf:'명'}),{months:v.map(x=>String(x[0])),values:v.map(x=>+x[1]||0)}]}
+ if(/조회|스레드|threads/.test(Q)){const t=d.mk.추이||[];return ['스레드 조회수',line([{n:'조회수',c:sc(6),v:t.map(x=>+x.조회수||0)}],t.map(x=>String(x.날짜).slice(5))),{months:t.map(x=>String(x.날짜)),values:t.map(x=>+x.조회수||0)}]}
+ if(/지연|업무|누가/.test(q)){const by={};d.O.forEach(t=>{const k=nm(t.담당)||'미정';by[k]=by[k]||{late:0,open:0};by[k].open++;if(late(t))by[k].late++});const items=Object.entries(by).map(([k,v],i)=>({n:k,v:v.late,c:'var(--red)',sub:['열린 업무',v.open+'건']}));return ['사람별 지연 업무',hbars(items,{unit:'지연',suf:'건',empty:'열린 업무 없음'}),{items:Object.entries(by).map(([k,v])=>[k,v.late,v.open])}]}
+ if(/비교|사업별|순위/.test(q)){const items=DATA.사업부.map((s,i)=>({n:s.이름,v:fin(s.이름,ym())[metric],c:sc(0)})).filter(x=>x.v).sort((a,b)=>b.v-a.v);return [`사업별 이번 달 ${mName}`,hbars(items,{empty:'이번 달 기록 없음'}),{items:items.map(x=>[x.n,x.v])}]}
+ if(biz){const v=M.map(m=>fin(biz.이름,m)[metric]);return [`${biz.이름} ${N}개월 ${mName}`,line([{n:mName,c:sc(0),v}],lab,{area:1}),{biz:biz.이름,months:M,values:v}]}
+ const v=M.map(m=>DATA.사업부.reduce((a,s)=>a+fin(s.이름,m)[metric],0));return [`그룹 ${N}개월 ${mName}`,line([{n:mName,c:sc(0),v}],lab,{area:1}),{months:M,values:v}]}
+function localNote(data){try{const v=data.values||(data.items||[]).map(x=>x[1])||[];const nz=v.filter(x=>+x);if(!nz.length)return '아직 숫자가 없어 해설할 게 없어요.';const last=+v[v.length-1]||0,first=+nz[0]||0,mx=Math.max(...v),mi=v.indexOf(mx);const ch=first?Math.round((last-first)/Math.abs(first)*100):0;if(data.months&&nz.length===1)return `기록이 있는 달은 ${data.months[v.findIndex(x=>+x)]} 한 달 · ${fmt(nz[0])} · 더 쌓이면 추세를 볼 수 있어요`;return `최고 ${fmt(mx)}${data.months?' ('+data.months[mi]+')':''} · ${data.months?'처음 대비 '+(ch>=0?'+':'')+ch+'%':'합계 '+fmt(v.reduce((a,b)=>a+(+b||0),0))}`}catch(_){return ''}}
+async function aiNote(title,data,el){el.innerHTML=`<div class="x8ai">${esc(localNote(data))}<small>자동 계산 · AI 해설 불러오는 중…</small></div>`;
+ try{const s=await window.claude.use('sample');if(!s)throw 0;const r=await s([{role:'user',content:`너는 다사업 대표의 재무·운영 비서다. 아래 데이터를 보고 한국어로 2줄 핵심 해설 + 지금 할 일 1개를 짧게. 숫자는 만원/억 단위.\n제목: ${title}\n데이터: ${JSON.stringify(data).slice(0,3500)}`}],{modelTier:'quick',maxTokens:400});
+  const t=typeof r==='string'?r:(r&&(r.text||r.content||(r.choices&&r.choices[0]&&r.choices[0].message&&r.choices[0].message.content)))||'';if(!t)throw 0;el.innerHTML=`<div class="x8ai">${esc(String(t).trim()).replace(/\n/g,'<br>')}<small>AI 해설 · ${esc(nowStr?nowStr():'')}</small></div>`}
+ catch(e){el.innerHTML=`<div class="x8ai">${esc(localNote(data))}<small>자동 계산 해설 · AI 해설은 AI 연결(키 등록) 후 켜져요</small></div>`}}
+const DATAOF={trend:()=>{const d=D(),G=d.gm.slice(-RANGE);return ['그룹 월별 매출·이익',{months:G.map(x=>x.m),values:G.map(x=>x.rev),profit:G.map(x=>x.pro)}]},bullet:()=>{const d=D();return ['사업별 이번 달 vs 목표',{items:d.biz.map(r=>[r.s.이름,r.rev,r.T])}]},health:()=>{const d=D();return ['사업 건강도',{items:d.biz.map(r=>[r.s.이름,health(r).score])}]},ohmy:()=>['오마이왕국 이번 달',{oh:LIVE.ohmy}],evsign:()=>['+EV 가입·방문',{ev:(LIVE.plusev||{}).ev}],threads:()=>['스레드 조회수',{mk:LIVE.marketing}],debt:()=>['갚을 돈',{debt:(LEDGER.d||{}).갚을돈}],sim:()=>{const d=D();return ['시뮬레이션',{sim:SIM,result:simCalc(d),now:d.annual}]}};
+
+function draw(){if(document.body.dataset.page!=='cockpit')return;const el=$('x8');if(!el)return;if(el.contains(document.activeElement)&&document.activeElement.matches('input[type=text],input:not([type]),input[name=q]'))return;
+ const keep={};el.querySelectorAll('[data-x8out]').forEach(o=>{if(o.innerHTML)keep[o.dataset.x8out]=o.innerHTML});const ans=$('x8ans')?$('x8ans').innerHTML:'';
+ try{el.innerHTML=html()}catch(e){el.innerHTML='<div class="x8c">관제실 화면 오류: '+esc(e.message)+'</div>';return}
+ Object.entries(keep).forEach(([k,v])=>{const o=el.querySelector(`[data-x8out="${k}"]`);if(o)o.innerHTML=v});if(ans&&$('x8ans'))$('x8ans').innerHTML=ans;
+ const nd=el.querySelector('.x8dial .nd');if(nd&&FIRST){FIRST=false;const r=nd.dataset.rot;nd.style.transition='none';nd.style.transform='rotate(0deg)';requestAnimationFrame(()=>requestAnimationFrame(()=>{nd.style.transition='';nd.style.transform=`rotate(${r}deg)`}))}
+ if(TV.on)tvShow();measure()}
+function measure(){const el=$('x8');if(!el)return;let ch=false;el.querySelectorAll('[data-x8out]').forEach(o=>{const c=o.closest('.x8c');if(!c)return;const w=Math.round(c.clientWidth-36);const k=o.dataset.x8out;if(k&&w>200&&Math.abs((WMAP[k]||640)-w)>30){WMAP[k]=w;ch=true}});{const h=el.querySelector('[data-x8w=people]');if(h){const w=Math.round(h.closest('.x8c').clientWidth-36);if(w>200&&Math.abs((WMAP.people||640)-w)>30){WMAP.people=w;ch=true}}}if(ch&&!measure.busy){measure.busy=1;requestAnimationFrame(()=>{draw();measure.busy=0})}}
+addEventListener('resize',()=>{clearTimeout(measure.t);measure.t=setTimeout(()=>{if(document.body.dataset.page==='cockpit')measure()},200)});
+
+/* ── 이벤트 ── */
+document.addEventListener('submit',e=>{if(e.target.id!=='x8ask')return;e.preventDefault();const q=e.target.q.value.trim();if(!q)return;AIQ=q;e.target.q.blur();ask(q)});
+function ask(q){const [t,h,data]=answer(q),a=$('x8ans');if(!a)return;a.innerHTML=`<div class="x8c" style="margin-top:12px;padding:12px 14px"><h3>${esc(t)}</h3>${h}<div data-x8out="ans"></div></div>`;aiNote(t,data,a.querySelector('[data-x8out="ans"]'))}
+let I_CACHE=[];
+document.addEventListener('click',e=>{const t=e.target;
+ const q=t.closest('[data-x8q]');if(q){AIQ=q.dataset.x8q;const i=document.querySelector('#x8ask input');if(i)i.value=AIQ;ask(AIQ);return}
+ const r=t.closest('[data-x8r]');if(r){RANGE=+r.dataset.x8r;LS.s('x8.range',RANGE);draw();return}
+ const g=t.closest('[data-go8]');if(g&&g.dataset.go8){setPage(g.dataset.go8);return}
+ const a=t.closest('[data-x8ai]');if(a){const k=a.dataset.x8ai,f=DATAOF[k];if(!f)return;const [ti,da]=f(),o=document.querySelector(`[data-x8out="${k}"]`);if(o)aiNote(ti,da,o);return}
+ const tb=t.closest('[data-x8tbl]');if(tb){const k=tb.dataset.x8tbl,f=DATAOF[k],o=document.querySelector(`[data-x8out="${k}"]`);if(!f||!o)return;if(o.querySelector('table')){o.innerHTML='';return}const [ti,da]=f();o.innerHTML=tableOf(da);return}
+ const ac=t.closest('[data-x8act]');if(ac){const [i,j]=ac.dataset.x8act.split(':').map(Number),x=insights(D())[i];if(!x)return;const [k,l,v]=x.acts[j];
+  if(k==='task'){todoAdd({제목:v,등급:'긴급'}).then(()=>{ac.textContent='업무로 만들었어요';ac.disabled=true})}
+  else if(k==='ai'){setPage('ai');setTimeout(()=>{const c=$('ch-in');if(c){c.value=v;c.focus()}},50)}
+  else if(k==='go')setPage(v);else if(k==='bell'){const b=document.querySelector('[data-s2="bell"]');b&&b.click()}return}
+ if(t.closest('[data-x8simon]')){SIM.on=!SIM.on;LS.s('x8.sim',SIM);draw();return}
+ if(t.closest('[data-x8simreset]')){SIM={oh:0,lab:0,ns:0,nsr:30000000,on:false};LS.s('x8.sim',SIM);draw();return}
+ if(t.closest('[data-x8tv]')){tvStart();return}if(t===tvx){tvStop();return}});
+document.addEventListener('input',e=>{const k=e.target.dataset&&e.target.dataset.x8sim;if(!k)return;SIM[k]=+e.target.value;SIM.on=true;LS.s('x8.sim',SIM);clearTimeout(window.__x8s);window.__x8s=setTimeout(()=>{const y=scrollY;draw();scrollTo(0,y)},120)});
+document.addEventListener('keydown',e=>{if(!e.target.closest)return;const m=e.target.closest('[data-tip]');if(m&&(e.key==='Enter'||e.key===' ')){const r=m.getBoundingClientRect();try{const tt=JSON.parse(m.dataset.tip);showTip(r.right,r.top,tt[0],tt[1])}catch(_){}}if(e.key==='Escape'&&TV.on)tvStop()});
+document.addEventListener('focusin',e=>{const m=e.target.closest&&e.target.closest('#x8 [data-tip]');if(m){const r=m.getBoundingClientRect();try{const tt=JSON.parse(m.dataset.tip);showTip(r.left+r.width/2,r.top,tt[0],tt[1])}catch(_){}}});
+function tableOf(da){const rows=[];if(da.months)da.months.forEach((m,i)=>rows.push([m,...[da.values,da.profit].filter(Boolean).map(a=>fmt(a[i]))]));else if(da.items)da.items.forEach(x=>rows.push(x.map((v,i)=>i?(typeof v==='number'?fmt(v):String(v??'—')):String(v))));else if(da.debt)da.debt.forEach(x=>rows.push([x.이름,fmt(x.남은),fmt(x.당월)]));else return '<div class="x8empty">표로 볼 데이터 없음</div>';
+ return `<table class="x8tbl"><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`}
+
+
+/* 사업 상세 (드릴다운) */
+function bizModal(id){const d=D(),r=d.biz.find(x=>x.s.id===id)||{s:DATA.사업부.find(x=>x.id===id)};if(!r||!r.s)return;const s=r.s,M=months(12),lab=M.map(m=>m.slice(2).replace('-','.')),F=M.map(m=>fin(s.이름,m)),h=r.rev!=null?health(r):null;
+ const I=insights(d).filter(x=>window.X5HIT&&window.X5HIT(id,x.t+x.p));const iss=d.O.filter(t=>window.X5HIT&&(window.X5HIT(id,t.제목)||window.X5HIT(id,t.프로젝트)));
+ const m=document.createElement('div');m.className='x8modal';m.innerHTML=`<div role="dialog" aria-modal="true" aria-label="${esc(s.이름)} 상세"><div style="display:flex;align-items:center;gap:10px"><h2 style="margin:0;font-size:22px">${esc(s.이름)}</h2><small style="color:var(--mute)">${esc(s.설명||'')}</small><button type="button" class="chip" data-x8close style="margin-left:auto">닫기</button></div>
+<div class="x8kpis" style="grid-template-columns:repeat(4,minmax(0,1fr))"><div class="x8k"><small>이번 달 매출</small><b>${fmt(r.rev||0)}</b></div><div class="x8k"><small>목표</small><b>${r.T?fmt(r.T):'—'}</b></div><div class="x8k"><small>건강도</small><b>${h?h.score:'—'}</b></div><div class="x8k"><small>열린 이슈</small><b>${iss.length}건</b></div></div>
+<div class="x8c"><h3>12개월 매출 · 이익</h3>${line([{n:'매출',c:sc(0),v:F.map(f=>f.수입)},{n:'이익',c:sc(2),v:F.map(f=>f.이익)}],lab,{area:1,w:800})}<div data-x8out="biz"></div><div class="x8bar" style="margin-top:8px"><button type="button" class="chip" data-x8bizai="${id}">AI 해설</button><button type="button" class="chip" data-x8bizgo="${r.pg||'brand'}">사업 화면으로</button></div></div>
+${I.length?`<div class="x8c"><h3>이 사업 자동 분석</h3>${I.map(x=>`<div class="x8in" style="--c:${LV[x.lv][1]}"><i>${ICO[x.lv]}</i><div><b>${esc(x.t)}</b><p>${esc(x.p)}</p></div></div>`).join('')}</div>`:''}
+<div class="x8c"><h3>열린 이슈</h3>${iss.slice(0,8).map(t=>`<div class="x3card"><span>${esc(t.제목)}</span><small>${esc(nm(t.담당))}${t.기한?' · '+t.기한.slice(5):''}</small></div>`).join('')||'<div class="x8empty">없음</div>'}</div></div>`;
+ m.addEventListener('click',e=>{if(e.target===m||e.target.closest('[data-x8close]'))m.remove();const a=e.target.closest('[data-x8bizai]');if(a)aiNote(s.이름+' 12개월',{months:M,values:F.map(f=>f.수입),profit:F.map(f=>f.이익)},m.querySelector('[data-x8out="biz"]'));const g=e.target.closest('[data-x8bizgo]');if(g){m.remove();setPage(g.dataset.x8bizgo)}});
+ document.body.appendChild(m);m.querySelector('[data-x8close]').focus()}
+/* 그래프 그림 저장 */
+function savePng(card){const svg=card.querySelector('svg.x8chart');if(!svg)return;const c=svg.cloneNode(true),cs=getComputedStyle(document.body),vb=svg.viewBox.baseVal,W=vb.width*2,H=vb.height*2;
+ c.setAttribute('width',W);c.setAttribute('height',H);c.setAttribute('xmlns','http://www.w3.org/2000/svg');const vars=['--ice','--mute','--line','--hull','--hull2','--cyan','--red','--green','--amber'];let x=new XMLSerializer().serializeToString(c);vars.forEach(v=>{x=x.split(`var(${v})`).join(cs.getPropertyValue(v).trim()||'#888')});
+ x=x.replace('<svg',`<svg style="font-family:sans-serif;background:${cs.getPropertyValue('--hull').trim()}"`).replace(/class="(gl|ax)"/g,`stroke="${cs.getPropertyValue('--line').trim()}"`).replace(/<text /g,`<text fill="${cs.getPropertyValue('--mute').trim()}" font-size="11" `);
+ const img=new Image();img.onload=()=>{const cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d');g.fillStyle=cs.getPropertyValue('--hull').trim()||'#fff';g.fillRect(0,0,W,H);g.drawImage(img,0,0,W,H);const a=document.createElement('a');a.download=(card.querySelector('h3')?.textContent.trim().slice(0,20)||'chart')+'.png';a.href=cv.toDataURL('image/png');a.click()};img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(x)}
+/* 브리핑 듣기 · 말로 묻기 */
+function say(){try{speechSynthesis.cancel();const t=[...document.querySelectorAll('.x8brief li span')].map(x=>x.textContent).join('. ').replace(/(\d+)억/g,'$1억 ');const u=new SpeechSynthesisUtterance(t);u.lang='ko-KR';u.rate=1.05;speechSynthesis.speak(u)}catch(_){window.X6TOAST&&X6TOAST('이 기기는 읽어주기를 지원하지 않아요')}}
+function listen(btn){const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R){window.X6TOAST&&X6TOAST('이 브라우저는 말로 묻기를 지원하지 않아요 · 크롬에서 돼요');return}const r=new R();r.lang='ko-KR';r.interimResults=false;btn.textContent='듣는 중';r.onresult=e=>{const q=e.results[0][0].transcript;AIQ=q;const i=document.querySelector('#x8ask input');if(i)i.value=q;ask(q)};r.onend=()=>{btn.textContent='말로'};r.onerror=()=>{btn.textContent='말로'};r.start()}
+document.addEventListener('click',e=>{const t=e.target;const b=t.closest('[data-x8biz]');if(b){bizModal(b.dataset.x8biz);return}
+ if(t.closest('[data-x8png]')){savePng(t.closest('.x8c'));return}if(t.closest('[data-x8say]')){say();return}if(t.closest('[data-x8print]')){window.print();return}const m=t.closest('[data-x8mic]');if(m){listen(m);return}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const m=document.querySelector('.x8modal');m&&m.remove()}if((e.key==='c'||e.key==='ㅊ')&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!(e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]'))&&!mem())setPage('cockpit')});
+
+/* ── 회의 모드 (큰 화면 · 12초마다 다음 판) ── */
+const TV={on:false,i:0,t:0};
+const TVS=['hero','kpi','trend','ins','live','money'];
+function tvShow(){const el=$('x8');if(!el)return;el.querySelectorAll('[data-x8s]').forEach(s=>s.classList.toggle('x8on',s.dataset.x8s===TVS[TV.i%TVS.length]||(TVS[TV.i%TVS.length]==='kpi'&&s.dataset.x8s==='kpi')));const b=tvbar.firstChild;b.style.transition='none';b.style.width='0';requestAnimationFrame(()=>{b.style.transition='width 12s linear';b.style.width='100%'})}
+function tvStart(){if(document.body.dataset.page!=='cockpit')setPage('cockpit');TV.on=true;TV.i=0;document.body.classList.add('x8tv');try{document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen().catch(()=>{})}catch(_){}tvShow();clearInterval(TV.t);TV.t=setInterval(()=>{TV.i++;tvShow()},12000)}
+function tvStop(){TV.on=false;clearInterval(TV.t);document.body.classList.remove('x8tv');document.querySelectorAll('#x8 .x8on').forEach(x=>x.classList.remove('x8on'));try{document.fullscreenElement&&document.exitFullscreen()}catch(_){}}
+document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&TV.on)tvStop()});
+
+/* ── 연결 · 첫 화면 ── */
+const _sp=setPage;setPage=function(g){if(g==='cockpit'&&mem())g='home';_sp(g);if(document.body.dataset.page!=='cockpit'&&TV.on)tvStop();draw()};
+const _re=renderExtra;renderExtra=function(){_re();draw()};
+let seen=false;try{seen=sessionStorage.getItem('x8.seen')==='1';sessionStorage.setItem('x8.seen','1')}catch(_){}
+const cssM=document.createElement('style');cssM.textContent='body.member #nav [data-go=cockpit]{display:none!important}';document.head.appendChild(cssM);
+setTimeout(()=>{if(!seen&&!mem()&&TEAM.owner)setPage('cockpit');else draw()},0);
+window.X8={ask,insights:()=>insights(D())};
 })();
 
 })();
