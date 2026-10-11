@@ -3520,6 +3520,217 @@ setTimeout(()=>{if(!seen&&!mem()&&TEAM.owner)setPage('cockpit');else draw()},0);
 window.X8={ask,insights:()=>insights(D())};
 })();
 
+/* SIGMA 9 — 임원용 메뉴, 실행 중심 홈, 데이터 기준 표시. 서버 데이터 변경 없음. */
+(function(){
+'use strict';
+const nav=$('nav'),main=document.querySelector('.mainc');
+const E=esc,day=()=>ymd(kst()),month=()=>day().slice(0,7);
+const executive=()=>!!mySeat();
+const financial=()=>TEAM.owner&&!TEAM.viewAs;
+const storage={get(k,d){try{return JSON.parse(localStorage.getItem('x9.'+k))??d}catch(_){return d}},set(k,v){try{localStorage.setItem('x9.'+k,JSON.stringify(v))}catch(_){}}};
+const GROUPS=[
+ ['오늘 할 일',['home','cockpit','tasks','board','report','ai']],
+ ['사업 현황',['offline','online','brand','group','exec']],
+ ['돈·결산',['money','close']],['사람',['people','staff']],
+ ['자료',['docs','mem','prompt']],['설정',['auto','acct']]
+];
+const LABEL={home:'오늘 할 일',cockpit:'전사 관제실',tasks:'업무 목록',board:'업무 보드',report:'보고·일정',ai:'AI 비서',offline:'오프라인 사업',online:'온라인 사업',brand:'사업부 전체',group:'매출·손익',exec:'목표·전략',money:'자금·채권',close:'월말 결산',people:'구성원',staff:'직원·채용',docs:'서류함',mem:'통화·기억',prompt:'프롬프트',auto:'연결·자동화',acct:'내 계정'};
+const DESC={home:'오늘 확인할 3건 · 결재 · 마감',cockpit:'전사 숫자와 추세 · 등록된 자료 기준',tasks:'담당자 · 기한 · 진행 상태',board:'단계별 업무 · 캘린더',report:'일간 · 주간 · 월간 보고',group:'사업별 매출 · 손익 비교',exec:'목표 · 리스크 · 성장 전략',money:'현금 · 갚을 돈 · 받을 돈',close:'월말 자료 확인 · 결산',auto:'연결 상태 · 마지막 실행 확인'};
+const query=k=>nav.querySelector(`button[data-go="${k}"]:not([data-fav])`);
+Object.entries(LABEL).forEach(([k,v])=>{if(PG[k]){PG[k][0]=v;if(DESC[k])PG[k][1]=DESC[k]}const b=query(k);if(b){const span=b.querySelector('span');if(span)span.textContent=v;b.title=DESC[k]||v;b.setAttribute('aria-label',v)}});
+nav.querySelectorAll(':scope>.ng').forEach(n=>n.remove());
+const anchor=nav.querySelector('.x6tools')||nav.querySelector('[data-more]');
+GROUPS.forEach(([name,keys])=>{const h=document.createElement('small');h.className='ng';h.textContent=name;h.tabIndex=0;h.setAttribute('role','button');h.setAttribute('aria-label',name+' 메뉴 접기');anchor.before(h);keys.forEach(k=>{const b=query(k);if(b)anchor.before(b)})});
+nav.setAttribute('aria-label','전사 프로그램 메뉴');
+nav.querySelectorAll('.x6fav button[data-go]').forEach(b=>{const s=b.querySelector('span');if(s)s.textContent=LABEL[b.dataset.go]||s.textContent});
+nav.addEventListener('keydown',e=>{if(e.target.matches('.ng')&&['Enter',' '].includes(e.key)){e.preventDefault();e.target.click()}});
+nav.addEventListener('click',e=>{if(e.target.closest('.ng'))schedule()});
+const mobile=['home','cockpit','tasks','money'];
+nav.querySelectorAll('button[data-go]').forEach(b=>{b.removeAttribute('data-m');if(mobile.includes(b.dataset.go)&&!b.hasAttribute('data-fav'))b.setAttribute('data-m','')});
+const short={home:'오늘',cockpit:'관제실',tasks:'업무',money:'돈'};
+Object.entries(short).forEach(([k,s])=>{const b=query(k);if(b){b.dataset.short=s;const span=b.querySelector('span');if(span)span.dataset.s=s}});
+const more=nav.querySelector('[data-more]');if(more)more.setAttribute('data-m','');
+if(more)anchor.before(more);
+try{if(localStorage.getItem('x6.fold')===null)localStorage.setItem('x6.fold',JSON.stringify(GROUPS.slice(1).map(g=>g[0])))}catch(_){}
+
+const sectionTabs=document.createElement('nav');sectionTabs.className='x9-section-tabs';sectionTabs.setAttribute('aria-label','현재 메뉴의 관련 화면');main.prepend(sectionTabs);
+const source=document.createElement('details');source.className='x9-source';source.innerHTML='<summary>데이터 수집 상태</summary><div class="x9-source-grid"></div>';sectionTabs.after(source);
+const homeSec=document.createElement('section');homeSec.className='pgsec x9-home-sec';homeSec.dataset.pg='home';homeSec.innerHTML='<div id="x9-home"></div>';source.after(homeSec);
+const taskSec=document.createElement('section');taskSec.className='pgsec';taskSec.dataset.pg='tasks';taskSec.innerHTML='<div id="x9-task-tools"></div>';homeSec.after(taskSec);
+const GUIDE={
+ offline:['매장 수치 확인 → 목표·이슈 수정','online','온라인 사업'],online:['가입·결제 지표 확인 → 실행 업무 등록','offline','오프라인 사업'],
+ brand:['사업부별 자료와 담당자 확인','group','매출·손익 비교'],group:['등록된 장부와 ERP 매출 기준','close','월말 결산'],
+ exec:['목표·기한·책임자를 함께 확인','board','업무 보드'],money:['잔고·채권·채무의 기준일을 확인','close','월말 결산'],
+ close:['누락 자료 확인 후 결산 진행','docs','서류함'],people:['사업별 담당자 확인','staff','직원·채용'],
+ staff:['명부·채용·시즌 배치 확인','people','구성원'],docs:['계약·증빙의 만기와 사업부 확인','mem','통화·기억'],
+ mem:['통화 기록에서 업무와 결정을 확인','tasks','업무 목록'],prompt:['자주 쓰는 지시문 확인','ai','AI 비서'],
+ auto:['수집 시각 확인 · 예약 작업 변경은 별도','cockpit','전사 관제실'],acct:['가입·역할·로그인 설정 확인','people','구성원']
+};
+const guide=document.createElement('div');guide.className='x9-guide';taskSec.after(guide);
+document.querySelector('.top').after(sectionTabs);sectionTabs.after(source);source.after(homeSec);homeSec.after(taskSec);taskSec.after(guide);
+let settings={};
+(async()=>{try{const db=await window.claude.use('db');db.doc('settings/x2').onSnapshot(d=>{settings=d.exists?d.data():{};schedule()},()=>{})}catch(_){}})();
+const btn=(text,go,cls='')=>`<button type="button" class="chip ${cls}" data-x9-go="${go}">${E(text)}</button>`;
+const val=(v,suffix='')=>v==null?'미입력':won(+v)+suffix;
+const number=v=>v!==null&&v!==undefined&&v!==''&&Number.isFinite(Number(v));
+const parseTime=s=>{if(!s)return null;const str=String(s).trim();const local=/^\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?)?$/.test(str);const t=Date.parse(local?str.replace(' ','T')+(str.length===10?'T00:00:00':'')+'+09:00':str);return Number.isFinite(t)?t:null};
+function status(v){const raw=v?.갱신||v?.updated_at||v?.수집시각;const t=parseTime(raw);const age=t==null?null:(Date.now()-t)/36e5;return {raw:raw||'',time:t,age,label:!v||!Object.keys(v).length?'미연결':age==null?'시각 미확인':age<-.1?'시각 확인 필요':age>=24?'오래된 자료':age>=6?'수집 확인 필요':'수집 확인',tone:age==null?'muted':age>=6||age<-.1?'warn':'good'}}
+const allBiz=()=>{try{return [...(window.X5SUM?.()||[]).map(r=>({...r,pg:'offline'})),...(window.X5ONL?.()||[]).map(r=>({...r,pg:'online'}))]}catch(_){return []}};
+function records(s,m=month()){
+ const ledger=MONEY.list.some(x=>(x.날짜||'').slice(0,7)===m&&['수입','지출'].includes(x.종류)&&(!s||x.사업부===s.이름));
+ const live=s?LIVE[s.id]:null;
+ const manual=s&&Object.entries(settings.offsales?.[s.id]||{}).some(([d,v])=>d.startsWith(m)&&number(v));
+ return ledger||manual||!!(live&&live.월===m&&number(live.월매출));
+}
+function sums(){const R=DATA.사업부.filter(s=>records(s));const F=R.map(s=>{const f=finOf(s.이름),manual=Object.entries(settings.offsales?.[s.id]||{}).filter(([d])=>d.startsWith(month())).reduce((a,[,v])=>a+(+v||0),0);return {rev:f.수입+manual,pro:f.이익+manual}});return {rev:R.length?F.reduce((a,x)=>a+(+x.rev||0),0):null,pro:R.length?F.reduce((a,x)=>a+(+x.pro||0),0):null,count:R.length}}
+function freshHTML(){return ['ohmy','plusev','marketing'].map(k=>{const s=status(LIVE[k]),name={ohmy:'오마이왕국',plusev:'+EV',marketing:'스레드'}[k];return `<button type="button" class="x9-source-item ${s.tone}" data-x9-go="${k==='ohmy'?'offline':'online'}"><b>${name}</b><span>${E(s.label)}</span><time>${E(s.raw||'수집 시각 없음')}</time></button>`}).join('')+btn('연결·자동화 확인','auto')}
+function taskRows(){const me=mySeat();return openT().filter(t=>financial()||t.담당===me||t.확인자===me)}
+function sortedTasks(){return taskRows().slice().sort((a,b)=>Number(!!late(b))-Number(!!late(a))||Number(stOf(b)==='확인필요')-Number(stOf(a)==='확인필요')||String(a.기한||'9999').localeCompare(String(b.기한||'9999'))||String(a.제목||'').localeCompare(String(b.제목||''),'ko'))}
+function taskHTML(t,i){const lateFlag=!!late(t),due=t.기한||'',name=t.담당?nm(t.담당):'담당자 미정';return `<button type="button" class="x9-task ${lateFlag?'is-late':''}" data-x9-task="${E(t.id)}" title="${E(t.제목||'제목 없음')}"><span class="x9-rank">${i+1}</span><span class="x9-task-body"><strong>${E(t.제목||'제목 없음')}</strong><small>${E(name)} · ${E(t.프로젝트||t.사업부||'사업부 미지정')} · ${E(stOf(t))}</small></span><span class="x9-due">${due?E(tdday(due)):'기한 미정'}<small>${E(due.slice(5))}</small></span></button>`}
+const kpi=(label,value,go,sub='',tone='')=>`<button type="button" class="x9-kpi ${tone}" data-x9-go="${go}"><small>${E(label)}</small><strong>${E(value)}</strong><span>${E(sub)}</span></button>`;
+function renderHome(){const root=$('x9-home');if(!root)return;if(!executive()){root.innerHTML='';return}
+ const S=sums(),T=sortedTasks(),today=day(),due=T.filter(t=>t.기한===today),lateT=T.filter(late),review=T.filter(t=>stOf(t)==='확인필요');const A=approvals();const C=TEAM.owner&&!TEAM.viewAs?moneySum('전체'):null;
+ const mine=T.filter(t=>(t.담당||'owner')===mySeat()),prior=(mine.length?mine:T).slice(0,3),biz=allBiz();
+ const issues=financial()?problems().filter(x=>x[0]!=='지연').slice(0,4):[];
+ const ap=A.map(([kind,title,go])=>`<li><span><b>${E(kind)}</b> ${E(title)}</span>${btn('확인',go==='home'?'tasks':go)}</li>`).join('');
+ const contracts=(DOCS.list||[]).filter(d=>d.만기&&d.만기>=today&&d.만기<=ymd(new Date(kst().getTime()+30*864e5))).sort((a,b)=>a.만기.localeCompare(b.만기));
+ const html=`<div class="x9-home-heading"><div><small>${E(today)} · ${E(nm(mySeat()))}</small><h2>오늘 먼저 처리할 일</h2></div><div class="x9-quick">${btn('할 일 추가','add-todo')}${btn('전사 관제실','cockpit')}</div></div>
+ <div class="x9-kpis">${kpi('오늘 마감',due.length+'건','tasks','열린 업무 기준',due.length?'warn':'')}${kpi('지연 업무',lateT.length+'건','tasks','기한 지난 업무',lateT.length?'danger':'')}${kpi('내 결재·요청',A.length+'건','tasks','내 계정 기준',A.length?'warn':'')}${kpi('완료 확인 대기',review.length+'건','board','확인필요 상태')}</div>
+ <div class="x9-two"><article class="x9-card"><div class="x9-card-title"><h3>${mine.length?'내 핵심 업무':'전사 핵심 업무'} <small>최대 3건</small></h3>${btn('전체 '+T.length+'건','tasks')}</div>${prior.map(taskHTML).join('')||'<div class="x9-empty">열린 업무가 없습니다.</div>'}</article>
+ <article class="x9-card"><div class="x9-card-title"><h3>내 결재·요청 <small>${A.length}건</small></h3>${btn('업무 보드','board')}</div><ul class="x9-list">${ap||'<li class="x9-empty">현재 처리할 요청 없음</li>'}</ul></article></div>
+ <div class="x9-card-title"><h3>사업 숫자 <small>${S.count}개 사업 자료 등록 · ${month()}</small></h3>${btn('그래프 보기','cockpit')}</div><div class="x9-kpis">${kpi('등록 사업 매출',val(S.rev),'group','전사 전체 자료 아님')}${kpi('등록 사업 영업이익',val(S.pro),'group','등록된 비용 기준',S.pro<0?'danger':'')}${C?kpi('등록 현금 잔고',val(C.cur),'money',C.bal.at(-1)?.날짜||'잔고 등록 필요'):''}${TEAM.owner&&!TEAM.viewAs?kpi('이번 달 상환 계획',LEDGER.d?won((LEDGER.d.갚을돈||[]).reduce((a,x)=>a+(+x.당월||0),0)):'미입력','money','채무 장부 기준'):''}</div>
+ <div class="x9-two"><article class="x9-card"><div class="x9-card-title"><h3>확인할 사업 문제</h3>${btn('매출·손익','group')}</div><ul class="x9-list">${issues.map(([kind,title,go])=>`<li><span><b>${E(kind)}</b> ${E(title)}</span>${btn('보기',go)}</li>`).join('')||'<li class="x9-empty">등록 자료에서 추가 경보 없음 · 미연결 사업 제외</li>'}</ul></article>
+ <article class="x9-card"><div class="x9-card-title"><h3>30일 안에 만기</h3>${btn('서류함','docs')}</div><ul class="x9-list">${contracts.slice(0,4).map(d=>`<li><span>${E(d.제목||d.파일명||'제목 없음')}<small>${E(d.만기)}</small></span><b>${E(tdday(d.만기))}</b></li>`).join('')||'<li class="x9-empty">등록된 만기 없음 · 계약 자료 확인 필요</li>'}</ul></article></div>
+ <article class="x9-card"><div class="x9-card-title"><h3>사업별 이번 달</h3>${btn('사업부 전체','brand')}</div><div class="x9-business">${biz.map(r=>{const has=records(r.s),target=number(r.T)&&+r.T>0,pct=target&&has?Math.min(100,Math.max(0,r.rev/r.T*100)):0;return `<button type="button" data-x9-go="${r.pg}" class="x9-biz"><span>${E(r.s.이름)}</span><strong>${has?won(r.rev):'자료 미입력'}</strong><progress max="100" value="${pct}" aria-label="${E(r.s.이름)} 목표 달성률"></progress><small>${!has?'매출·비용 등록 필요':target?'목표 대비 '+Math.round(r.rev/r.T*100)+'%':'목표 미설정'}</small></button>`}).join('')}</div></article>
+ <div class="x9-home-footer">${btn('업무 보드','board')}${btn('보고·일정','report')}${btn('서류 등록','docs')}${btn('AI 비서','ai')}</div>`;
+ const key=html+'|'+financial();if(root._x9html===key)return;root._x9html=key;root.innerHTML=html;
+ if(!financial()){
+  root.querySelectorAll('.x9-kpis')[1]?.remove();
+  root.querySelectorAll('.x9-card-title').forEach(t=>{if(t.textContent.startsWith('사업 숫자'))t.remove()});
+  root.querySelectorAll('.x9-two')[1]?.remove();
+  root.querySelector('.x9-business')?.closest('article')?.remove();
+  root.querySelector('[data-x9-go="cockpit"]')?.remove();
+ }
+}
+let FILTER=storage.get('taskFilter',{q:'',scope:'all'});
+function filtered(){return sortedTasks().filter(t=>{const q=FILTER.q.toLocaleLowerCase();return (!q||[t.제목,t.프로젝트,t.사업부,nm(t.담당),stOf(t)].join(' ').toLocaleLowerCase().includes(q))&&(FILTER.scope!=='late'||late(t))&&(FILTER.scope!=='mine'||(t.담당||'owner')===mySeat())&&(FILTER.scope!=='today'||t.기한===day())&&(FILTER.scope!=='review'||stOf(t)==='확인필요')&&(FILTER.scope!=='nodue'||!t.기한)})}
+function renderTaskTools(){const root=$('x9-task-tools');if(!root||document.body.dataset.page!=='tasks')return;
+ if(!root.querySelector('input'))root.innerHTML=`<article class="x9-card"><div class="x9-card-title"><h3>열린 업무 빠르게 찾기</h3>${btn('업무 보드','board')}</div><label class="x9-search">업무 검색<input type="search" autocomplete="off" placeholder="제목 · 담당자 · 사업부" aria-label="열린 업무 검색"></label><div class="x9-filter">${[['all','전체'],['mine','내 업무'],['late','지연만'],['today','오늘 마감'],['review','완료 확인'],['nodue','기한 미정']].map(([s,l])=>`<button type="button" class="chip" data-x9-filter="${s}">${l}</button>`).join('')}<button type="button" class="chip" data-x9-reset>필터 초기화</button></div><p class="x9-result" role="status"></p><div class="x9-task-results"></div><small class="x9-hint">아래 기존 업무 목록에서 추가·완료·위임할 수 있습니다.</small></article>`;
+ const input=root.querySelector('input');if(input!==document.activeElement&&input.value!==FILTER.q)input.value=FILTER.q;
+ root.querySelectorAll('[data-x9-filter]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.x9Filter===FILTER.scope));
+ const rows=filtered(),res=root.querySelector('.x9-result'),text=`${rows.length}건 표시 / 열린 업무 ${taskRows().length}건`;if(res.textContent!==text)res.textContent=text;
+ const list=root.querySelector('.x9-task-results'),html=rows.slice(0,30).map(taskHTML).join('')||'<div class="x9-empty">조건에 맞는 업무 없음 · 필터 초기화로 다시 확인</div>';if(list.innerHTML!==html)list.innerHTML=html;
+}
+function trend(){const holder=document.querySelector('#x8 [data-x8s=trend] .x8c');if(!holder)return;
+ const period=Number(document.querySelector('[data-x8r][aria-pressed=true]')?.dataset.x8r)||12;
+ const rows=[];for(let i=period-1;i>=0;i--){const d=kst();d.setDate(1);d.setMonth(d.getMonth()-i);const m=ymd(d).slice(0,7);const has=DATA.사업부.some(s=>records(s,m));const f=finOf('전체',m);const manual=Object.values(settings.offsales||{}).flatMap(o=>Object.entries(o)).filter(([d])=>d.startsWith(m)).reduce((a,[,v])=>a+(+v||0),0);rows.push({m,has,rev:(+f.수입||0)+manual,pro:(+f.이익||0)+manual})}
+ const missing=rows.filter(r=>!r.has).length;let note=holder.querySelector('.x9-chart-note');if(!note){note=document.createElement('p');note.className='x9-chart-note';holder.querySelector('.x8sub')?.after(note)}
+ note.textContent=`최근 ${period}개월 중 ${period-missing}개월 자료 등록 · 미입력 ${missing}개월은 0원으로 해석하지 마세요.`;
+ holder.querySelectorAll('.x8chart,.x8line,.x8leg').forEach(el=>el.classList.toggle('x9-sparse-hidden',missing>0));
+ let chart=holder.querySelector('.x9-trend');if(!chart){chart=document.createElement('div');chart.className='x9-trend';note.after(chart)}chart.hidden=!missing;
+ if(missing){const max=Math.max(1,...rows.map(r=>Math.max(r.rev,Math.abs(r.pro))));chart.innerHTML=`<div class="x9-month-bars" role="img" aria-label="등록된 월 매출과 영업이익 · 빈 달은 미입력">${rows.map(r=>`<div class="x9-month"><div class="x9-month-value">${r.has?`<i style="height:${Math.max(2,r.rev/max*100)}%" title="${r.m} 매출 ${won(r.rev)}"></i><i class="profit ${r.pro<0?'negative':''}" style="height:${Math.max(2,Math.abs(r.pro)/max*100)}%" title="${r.m} 영업이익 ${won(r.pro)}"></i>`:'<span>—</span>'}</div><small>${r.m.slice(5)}월</small></div>`).join('')}</div><div class="x9-chart-legend">매출 <i></i> 영업이익 <i class="profit"></i> — 미입력</div>`}
+}
+function cockpit(){if(document.body.dataset.page!=='cockpit')return;const root=$('x8'),kpis=root?.querySelector('.x8kpis');if(!root||!kpis)return;
+ if(root.firstElementChild!==kpis)root.prepend(kpis);
+ const hero=root.querySelector('[data-x8s=hero]');if(hero){hero.classList.add('x9-compact');root.append(hero)}
+ let cash=kpis.querySelector('#x9-cash');if(!cash&&TEAM.owner&&!TEAM.viewAs){cash=document.createElement('button');cash.id='x9-cash';cash.type='button';cash.className='x8k';cash.dataset.x9Go='money';kpis.append(cash)}
+ if(cash){const m=moneySum('전체');cash.innerHTML=`<small>등록 현금 잔고</small><b>${E(val(m.cur))}</b><em>${E(m.bal.at(-1)?.날짜||'잔고 등록 필요')}</em>`}
+ const S=sums(),buttons=[...kpis.children];if(buttons[0]){buttons[0].querySelector('small').textContent='등록 사업 매출';buttons[0].querySelector('b').textContent=val(S.rev)}if(buttons[1]){buttons[1].querySelector('small').textContent='등록 사업 영업이익';buttons[1].querySelector('b').textContent=val(S.pro)}
+ buttons.slice(0,2).forEach(b=>b.querySelector('svg')?.remove());
+ if(buttons[2]){const v=LIVE.ohmy?.오늘?.매출,b=buttons[2].querySelector('b');b.textContent=number(v)?won(v):'수집 대기';buttons[2].title='오마이 오늘 수집값 · 다른 미연결 매장은 제외'}
+ const liveLabel=hero?.querySelector('h3 small');if(liveLabel)liveLabel.textContent='등록 자료 기반 분석 · 수집 시각은 상단에서 확인';
+ const sub=hero?.querySelector('.x8hero>div:first-child>div>small');if(sub)sub.textContent='등록 매출의 단순 월말·연 환산 추정 · 확정 실적 아님';
+ root.querySelectorAll('.x8health .x8h').forEach(el=>{const id=el.dataset.x8biz,s=DATA.사업부.find(s=>s.id===id);if(s&&!records(s)){el.querySelector('b').textContent='자료 없음';el.classList.add('x9-no-score');el.removeAttribute('data-tip');el.title='매출·비용 미입력 사업은 건강도 점수에서 제외'}});
+ root.querySelectorAll('[data-x8out=bullet]').forEach(out=>{const card=out.closest('.x8c');card.querySelectorAll('g[data-go8]').forEach(g=>{let name='';try{name=JSON.parse(g.dataset.tip)[0]}catch(_){}const s=DATA.사업부.find(s=>s.이름===name);if(s&&!records(s)){const texts=g.querySelectorAll('text');const last=texts[texts.length-1];if(last&&last.textContent!=='—')last.textContent='—';const tip=JSON.stringify([name,[['','매출 자료','미입력']]]);if(g.dataset.tip!==tip)g.dataset.tip=tip}})});
+ trend();
+}
+function business(){
+ if(!financial()||!['offline','online'].includes(document.body.dataset.page))return;
+ const host=$(document.body.dataset.page==='offline'?'x5-off':'x5-onl');if(!host)return;
+ const biz=allBiz().filter(r=>r.pg===document.body.dataset.page),known=biz.filter(r=>records(r.s));
+ let cover=host.querySelector('.x9-coverage');if(!cover){cover=document.createElement('p');cover.className='x9-coverage';host.prepend(cover)}
+ const text=`이번 달 ${known.length}/${biz.length}개 사업 매출 자료 등록 · 미입력 사업은 합계에 반영되지 않습니다.`;if(cover.textContent!==text)cover.textContent=text;
+ const monthBefore=kst();monthBefore.setDate(1);monthBefore.setMonth(monthBefore.getMonth()-1);const pm=ymd(monthBefore).slice(0,7);
+ host.querySelectorAll('.x5card').forEach(card=>{const name=card.querySelector('h3')?.textContent.trim(),r=biz.find(r=>r.s.이름===name);if(!r)return;
+  card.querySelectorAll('.x5k>div').forEach(k=>{const l=k.querySelector('small')?.textContent.trim(),v=k.querySelector('b');if(!v)return;
+   if(['이번 달 매출','월말 예상','이익'].includes(l)&&!records(r.s))v.textContent='자료 미입력';
+   if(l==='지난 달'&&!records(r.s,pm))v.textContent='자료 미입력';
+   if(l==='오늘 매출'&&r.s.id==='ohmy'&&!number(LIVE.ohmy?.오늘?.매출))v.textContent='수집 대기';
+  });
+  const raw=LIVE[r.s.id];let label=card.querySelector('.x9-biz-status');if(!label){label=document.createElement('small');label.className='x9-biz-status';card.querySelector('h3')?.parentElement.after(label)}
+  const st=status(raw),text=raw?`${st.label} · ${st.raw||'수집 시각 없음'}`:records(r.s)?'수기·장부 입력 기준':'ERP 미연결 · 수기 매출 입력 가능';if(label.textContent!==text)label.textContent=text;
+ });
+ if(!known.length){host.querySelectorAll('.x3>.x5k:first-child>div').forEach(k=>{const l=k.querySelector('small')?.textContent||'',b=k.querySelector('b');if(b&&/매출|영업이익/.test(l))b.textContent='자료 미입력'})}
+}
+const savedView=viewHTML;
+viewHTML=function(p){return p==='home'&&executive()?'':savedView(p)};
+function stripEmoji(root){const re=/[\p{Extended_Pictographic}\p{Regional_Indicator}\uFE0F\u200D\u20E3]/gu;const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode(n){return n.parentElement?.closest('script,style,textarea,input,[contenteditable],.msg,.raw,.prb')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT}});const nodes=[];while(walker.nextNode())if(re.test(walker.currentNode.nodeValue)){nodes.push(walker.currentNode);re.lastIndex=0}nodes.forEach(n=>{const v=n.nodeValue.replace(re,'');if(v!==n.nodeValue)n.nodeValue=v})}
+function polish(){
+ document.body.classList.toggle('x9-executive',executive());
+ const p=document.body.dataset.page,G=GROUPS.find(([,keys])=>keys.includes(p));
+ const heading=$('pg-title');if(heading&&LABEL[p]&&heading.textContent!==LABEL[p])heading.textContent=LABEL[p];
+ const allowed=k=>financial()||['home','tasks','board','report','ai','acct','docs','mem'].includes(k);
+ const tabs=G?G[1].filter(k=>query(k)&&allowed(k)).map(k=>`<button type="button" data-x9-go="${k}" aria-current="${p===k?'page':'false'}">${E(LABEL[k])}</button>`).join(''):'';if(sectionTabs.innerHTML!==tabs)sectionTabs.innerHTML=tabs;
+ const showSources=financial()&&['home','cockpit','offline','online','group'].includes(p);source.hidden=!showSources;source.open=storage.get('sources',false);if(showSources){const inner=source.querySelector('.x9-source-grid'),html=freshHTML();if(inner.innerHTML!==html)inner.innerHTML=html;const bad=['ohmy','plusev','marketing'].filter(k=>status(LIVE[k]).tone!=='good').length;const title='데이터 수집 상태'+(bad?' · '+bad+'개 확인 필요':' · 수집 시각 확인');if(source.querySelector('summary').textContent!==title)source.querySelector('summary').textContent=title}
+ const upd=document.querySelector('.x6upd');if(upd&&upd.textContent!=='화면 표시 시각 · 데이터 수집과 별개')upd.textContent='화면 표시 시각 · 데이터 수집과 별개';
+ const g=GUIDE[p];guide.hidden=!g;if(g){const html=`<span>${E(g[0])}</span>${btn(g[2],g[1])}`;if(guide.innerHTML!==html)guide.innerHTML=html}
+ let folds=[];try{folds=JSON.parse(localStorage.getItem('x6.fold')||'[]')}catch(_){}let folded=false;
+ [...nav.children].forEach(el=>{if(el.matches('.ng')){folded=folds.includes(el.textContent);el.classList.toggle('x6f',folded);el.setAttribute('aria-expanded',String(!folded))}else if(el.matches('button[data-go]')){el.classList.toggle('x6h',innerWidth>860&&folded&&el.dataset.go!==p)}});
+ renderHome();renderTaskTools();cockpit();business();
+ document.querySelectorAll('.x8ask input').forEach(i=>i.setAttribute('aria-label','관제실 지표 질문'));
+ document.querySelectorAll('.x8tools button').forEach(b=>{const title=b.closest('.x8c')?.querySelector('h3')?.textContent.trim()||'그래프';b.setAttribute('aria-label',title+' '+b.textContent)});
+ document.querySelectorAll('.mainc table').forEach(t=>{if(!t.getAttribute('aria-label'))t.setAttribute('aria-label',t.closest('.card,.x3,.panel')?.querySelector('h3,h4,h2')?.textContent.trim()||LABEL[p]+' 자료');t.querySelectorAll('th').forEach(th=>th.setAttribute('scope','col'))});
+ const mic=$('mic');if(mic&&mic.textContent!=='말하기')mic.textContent='말하기';
+ const send=$('cmd-in');if(send){send.setAttribute('aria-label','AI 업무 지시 입력');send.placeholder='업무 지시 또는 질문'}
+ const doc=document.querySelector('.cmd-form .filebtn,.cmd-form label');if(doc){stripEmoji(doc)}
+ document.querySelectorAll('.x6fab').forEach(f=>{if(!f.querySelector('svg'))f.innerHTML=window.X7SVG?.('ai')||'AI';f.setAttribute('aria-label','AI 입력창 열기')});
+ stripEmoji(main);const acct=$('sg-acct');if(acct)stripEmoji(acct);
+ document.querySelectorAll('.mainc button').forEach(b=>{if(!b.type)b.type='button';if(!b.getAttribute('aria-label')&&b.textContent.trim())b.title=b.title||b.textContent.trim()});
+}
+let timer=0,observer;
+function schedule(){if(timer)return;timer=setTimeout(()=>{timer=0;observer.disconnect();try{polish()}finally{observe()}},40)}
+function observe(){observer.observe(main,{childList:true,subtree:true});observer.observe(document.body,{attributes:true,attributeFilter:['data-page','class']})}
+observer=new MutationObserver(schedule);
+source.addEventListener('toggle',()=>storage.set('sources',source.open));
+document.addEventListener('click',e=>{
+ const b=e.target.closest('[data-x9-go],[data-x9-task],[data-x9-filter],[data-x9-reset]');if(!b)return;
+ if(b.hasAttribute('data-x9-go')){const g=b.dataset.x9Go;if(g==='add-todo'){document.querySelector('[data-x6add="todo"]')?.click();return}setPage(g);return}
+ if(b.hasAttribute('data-x9-task')){const id=b.dataset.x9Task;setPage('tasks');if(TEAM.tasks.some(t=>t.id===id)){TEAM.open=id;drawDetail()}else{FILTER={q:((TEAM.todo||[]).find(t=>t.id===id)||{}).제목||'',scope:'all'};renderTaskTools();$('x9-task-tools')?.scrollIntoView({block:'start'})}return}
+ if(b.hasAttribute('data-x9-reset'))FILTER={q:'',scope:'all'};else FILTER.scope=b.dataset.x9Filter;storage.set('taskFilter',FILTER);renderTaskTools();
+});
+document.addEventListener('input',e=>{if(e.target.matches('#x9-task-tools input')){FILTER.q=e.target.value;storage.set('taskFilter',FILTER);renderTaskTools()}});
+document.addEventListener('keydown',e=>{const el=e.target;if(el.closest('input,textarea,select,[contenteditable]'))return;if(e.altKey&&e.key.toLowerCase()==='h'){e.preventDefault();setPage('home')}if(e.altKey&&e.key.toLowerCase()==='c'){e.preventDefault();setPage('cockpit')}});
+const skip=document.createElement('a');skip.href='#x9-main';skip.className='x9-skip';skip.textContent='본문 바로가기';document.body.prepend(skip);main.id='x9-main';main.tabIndex=-1;
+const css=document.createElement('style');css.textContent=`
+/* 메뉴 01–20: 기존 접근 권한 규칙을 유지하며 표시만 정리 */
+.side button[data-go]{min-height:38px;padding:7px 10px;font-size:14px;line-height:1.25}.side button[data-go] span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.side .ng{padding:10px 10px 4px;font-size:11.5px}.side .brand{padding-bottom:6px}.side .ng:focus-visible{outline:2px solid var(--cyan)}
+.x9-section-tabs{display:flex;gap:5px;overflow-x:auto;padding:0 0 8px;margin-bottom:8px;scrollbar-width:thin}.x9-section-tabs button{flex:none;border:1px solid var(--line);border-radius:8px;background:var(--hull);color:var(--ice);font:inherit;font-size:13px;padding:7px 11px;cursor:pointer}.x9-section-tabs [aria-current=page]{background:var(--cyan);color:#fff;border-color:var(--cyan);font-weight:800}
+.x9-source{border:1px solid var(--line);border-radius:10px;background:var(--hull);padding:8px 12px;margin-bottom:12px;color:var(--mute);font-size:12.5px}.x9-source summary{cursor:pointer;font-weight:700;color:var(--ice)}.x9-source-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}.x9-source-item{display:grid;gap:4px;text-align:left;background:var(--hull2);border:1px solid var(--line);border-radius:8px;padding:9px;color:var(--ice);font:inherit;cursor:pointer}.x9-source-item span{font-size:12px}.x9-source-item.warn span{color:var(--amber)}.x9-source-item.good span{color:var(--green)}.x9-source-item time{font-size:11px;color:var(--mute)}
+body.x9-executive[data-page=home] #x6-home,body.x9-executive[data-page=home] #x3p-home,body.x9-executive[data-page=home] #vb-body,body.x9-executive[data-page=home] [aria-labelledby=h-al]{display:none!important}
+body.x9-executive[data-page=home] .panel:has(#vb-body){display:none!important}
+.x9-home-heading,.x9-card-title{display:flex;gap:10px;justify-content:space-between;align-items:center;margin-bottom:10px}.x9-home-heading h2{font-size:22px;margin:4px 0}.x9-home-heading small,.x9-card-title small,.x9-hint{color:var(--mute);font-size:12px;font-weight:400}.x9-quick,.x9-home-footer{display:flex;gap:6px;flex-wrap:wrap}.x9-home-footer{margin:12px 0}
+#x9-home{display:grid;gap:12px}.x9-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.x9-kpi{display:flex;flex-direction:column;gap:5px;min-width:0;border:1px solid var(--line);border-radius:12px;background:var(--hull);color:var(--ice);padding:12px;text-align:left;font:inherit;cursor:pointer}.x9-kpi small{font-size:12px;color:var(--mute)}.x9-kpi strong{font-size:25px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}.x9-kpi span{font-size:11.5px;color:var(--mute)}.x9-kpi.warn strong{color:var(--amber)}.x9-kpi.danger strong{color:var(--red)}
+.x9-two{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:12px}.x9-card{border:1px solid var(--line);background:var(--hull);border-radius:12px;padding:14px;min-width:0}.x9-card h3,.x9-card-title h3{font-size:15px;margin:0}.x9-card .chip{flex:none}.x9-list{list-style:none;padding:0;margin:0;max-height:280px;overflow:auto}.x9-list li{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px;overflow-wrap:anywhere}.x9-list li:last-child{border-bottom:0}.x9-list small{display:block;color:var(--mute);margin-top:3px}.x9-empty{font-size:13px;color:var(--mute);padding:16px 0;line-height:1.6}
+.x9-task{display:flex;gap:10px;align-items:center;width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ice);padding:10px 0;text-align:left;font:inherit;cursor:pointer}.x9-task:last-child{border-bottom:0}.x9-rank{display:grid;place-items:center;border:1px solid var(--line);border-radius:8px;width:28px;height:28px;flex:none;font-size:12px;font-weight:800}.x9-task-body{flex:1;min-width:0}.x9-task strong{font-size:14px;line-height:1.4;display:block;overflow-wrap:anywhere}.x9-task small{display:block;font-size:11.5px;color:var(--mute);margin-top:4px}.x9-due{flex:none;font-size:12px;min-width:54px;text-align:right}.x9-task.is-late .x9-due{color:var(--red);font-weight:700}.x9-task:hover,.x9-biz:hover{background:var(--hull2)}
+.x9-business{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.x9-biz{display:grid;gap:6px;min-width:0;text-align:left;background:var(--hull2);border:1px solid var(--line);border-radius:9px;padding:12px;color:var(--ice);font:inherit;cursor:pointer}.x9-biz span{font-size:12px;overflow-wrap:anywhere}.x9-biz strong{font-size:18px;font-variant-numeric:tabular-nums}.x9-biz small{font-size:11px;color:var(--mute)}.x9-biz progress{width:100%;height:6px;accent-color:var(--cyan)}
+.x9-search{display:flex;gap:10px;align-items:center;font-size:12px;color:var(--mute)}.x9-search input{width:100%;min-width:0;padding:10px 12px;border:1px solid var(--line);background:var(--hull2);border-radius:8px;font:inherit;font-size:14px;color:var(--ice)}.x9-filter{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.x9-filter [aria-pressed=true]{background:var(--cyan);color:#fff;border-color:var(--cyan)}.x9-result{font-size:12px;color:var(--mute)}.x9-task-results{max-height:400px;overflow:auto}.x9-guide{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--hull);border-left:3px solid var(--cyan);padding:10px 12px;margin:0 0 12px;border-radius:8px;font-size:13px;color:var(--mute)}
+body[data-page=cockpit] #x8{gap:12px}#x8>.x8kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.x8k{min-height:90px}.x8k b{font-size:23px}.x8k em{line-height:1.4}.x8k:nth-child(3),.x8k:nth-child(4){order:1}#x9-cash{order:0}.x8tools{position:static;float:right;flex-wrap:wrap;justify-content:flex-end;margin:0 0 7px 8px}.x8c>h3{flex-wrap:wrap;clear:left}.x8tools button{min-height:32px}.x8row[data-x8s=trend]{grid-template-columns:repeat(12,minmax(0,1fr))}.x8row[data-x8s=trend]>.s7{grid-column:span 7}.x8row[data-x8s=trend]>.s5{grid-column:span 5}.x9-compact .x8hero{grid-template-columns:150px minmax(0,1fr);gap:18px}.x9-compact .x8dial{max-width:150px}.x9-compact .x8big{font-size:26px}.x9-compact .x8brief li{font-size:13px}.x9-compact .x8askrow{margin-top:10px;padding-top:10px}.x8health .x9-no-score .bar{opacity:.25}.x8health .x9-no-score b{font-size:11px;color:var(--mute)!important}.x8health .x9-no-score{grid-template-columns:110px 1fr 60px}
+.x9-chart-note{font-size:12px;color:var(--amber);margin:6px 0 10px;line-height:1.5}.x9-sparse-hidden{display:none!important}.x9-month-bars{height:180px;display:flex;gap:5px;padding:8px 0}.x9-month{flex:1;min-width:0;display:flex;flex-direction:column;text-align:center;gap:5px}.x9-month-value{flex:1;display:flex;align-items:flex-end;justify-content:center;gap:2px;border-bottom:1px solid var(--line)}.x9-month-value i{display:block;background:var(--cyan);width:35%;border-radius:3px 3px 0 0}.x9-month-value i.profit{background:var(--green)}.x9-month-value i.negative{background:var(--red)}.x9-month-value span{color:var(--mute);font-size:11px}.x9-month small{font-size:10px;color:var(--mute)}.x9-chart-legend{font-size:11px;color:var(--mute);display:flex;align-items:center;gap:7px}.x9-chart-legend i{width:12px;height:5px;background:var(--cyan)}.x9-chart-legend i.profit{background:var(--green)}
+.x9-month-value i:not(.profit),.x9-chart-legend i:not(.profit){background:#2a78d6}.x9-coverage{padding:8px 10px;background:var(--hull2);border-radius:8px;font-size:12px;color:var(--mute);line-height:1.5}.x9-biz-status{display:block;font-size:11.5px;color:var(--mute);margin:6px 0}
+.x9-skip{position:fixed;top:-80px;left:12px;z-index:999;background:var(--cyan);color:#fff;padding:12px;border-radius:8px}.x9-skip:focus{top:12px}#x9-main:focus{outline:none}.mainc button:focus-visible,.x9-section-tabs button:focus-visible,summary:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}.mainc{overflow-wrap:anywhere}button,summary{touch-action:manipulation}.x9-source[hidden],.x9-guide[hidden]{display:none!important}.x9-home-sec{margin-bottom:12px}.x6upd{font-size:11px}
+body.x6hide #x9-home .x9-kpi strong,body.x6hide .x9-biz strong,body.x6hide #x9-cash b{filter:blur(7px);user-select:none}
+@media(min-width:861px){body[data-page=cockpit] .cmdwrap{display:none!important}.side{scrollbar-gutter:stable}.side button[data-go]{scroll-margin-block:36px}.x9-section-tabs{position:relative}}
+@media(max-width:860px){.side button[data-m]{min-height:52px}.x9-section-tabs{margin-top:3px}.x9-section-tabs button{padding:8px 10px;min-height:36px}.x9-two{grid-template-columns:1fr}.x9-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.x9-business{grid-template-columns:repeat(2,minmax(0,1fr))}.x9-home-heading{align-items:flex-start}.x9-home-heading h2{font-size:19px}.x9-quick{max-width:130px;justify-content:flex-end}.x9-source-grid{grid-template-columns:1fr}.x9-card{padding:12px}.x9-kpi strong{font-size:23px}.x9-home-heading small{font-size:11px}.x9-compact .x8hero{grid-template-columns:100px minmax(0,1fr);gap:10px}.x9-compact .x8dial{max-width:100px}.x9-compact .x8big{font-size:20px}.x9-compact .x8hero>div:first-child small{font-size:10px!important}.x9-compact .x8brief li{font-size:12px}.x9-compact h3>span{margin-left:0!important}.x8row[data-x8s=trend]>.s7,.x8row[data-x8s=trend]>.s5{grid-column:span 12}#x8>.x8kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.x8k{padding:10px;min-height:84px}.x8k small{font-size:11px}.x8k b{font-size:21px}.x8k em{font-size:11px}.x9-guide{align-items:flex-start}.x9-guide .chip{flex:none}.x9-filter .chip{min-height:36px}.x9-due{min-width:48px}.x9-task-results{max-height:360px}.x9-search input{font-size:16px}.x9-source summary{min-height:24px}.x9-task strong{font-size:13px}.x9-card-title{align-items:flex-start}.x9-card-title .chip{font-size:11px}.x9-home-footer .chip{min-height:36px}.x8tools button{min-height:36px}.x8tl{overflow-x:auto}.mainc{padding-bottom:100px!important}}
+@media(max-width:360px){.x9-quick{display:none}.x9-kpi strong{font-size:20px}.x9-compact .x8hero{grid-template-columns:1fr}.x9-compact .x8hero>div:first-child{display:none}.x9-biz strong{font-size:16px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+@media print{.x9-section-tabs,.x9-home-footer,.x9-quick,.x9-skip,.x9-guide,.x9-source,.x9-filter{display:none!important}.x9-card,.x9-kpi{break-inside:avoid}.x9-task-results,.x9-list{max-height:none;overflow:visible}.x9-two{grid-template-columns:1fr 1fr}.x9-kpis{grid-template-columns:repeat(4,1fr)}}
+`;document.head.appendChild(css);
+const oldSetPage=setPage;setPage=function(p){oldSetPage(p);schedule()};const oldRender=renderExtra;renderExtra=function(){oldRender();schedule()};
+observe();schedule();setInterval(schedule,60000);
+addEventListener('resize',schedule);
+window.X9={version:9,status,parseTime,records,sums,taskRows,filtered,refresh:schedule};
+})();
+
 })();
 
 </script>
