@@ -3766,6 +3766,151 @@ const oldRender=renderExtra;renderExtra=function(){oldRender();schedule()};
 schedule();setInterval(schedule,30000);
 })();
 
+/* SIGMA 11 — business cards: clear hierarchy, compact actions, local exploration. */
+(function(){
+'use strict';
+const main=document.querySelector('.mainc');if(!main)return;
+const assistant=document.createElement('button');assistant.type='button';assistant.className='x11-assistant';assistant.textContent='AI 비서';assistant.setAttribute('aria-label','AI 입력창 열기');assistant.setAttribute('aria-expanded','false');document.body.append(assistant);
+assistant.addEventListener('click',()=>{const open=document.body.classList.toggle('x11-command-open');assistant.setAttribute('aria-expanded',String(open));assistant.textContent=open?'입력창 닫기':'AI 비서';if(open)document.getElementById('cmd-in')?.focus()});
+document.addEventListener('keydown',e=>{if(!document.body.classList.contains('x11-business-page'))return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='j'){document.body.classList.add('x11-command-open');assistant.setAttribute('aria-expanded','true');assistant.textContent='입력창 닫기';document.getElementById('cmd-in')?.focus()}if(e.key==='Escape'&&e.target.closest('.cmdwrap')){document.body.classList.remove('x11-command-open');assistant.setAttribute('aria-expanded','false');assistant.textContent='AI 비서';assistant.focus()}});
+const roots=['x5-off','x5-onl'],state={offline:{q:'',filter:'all'},online:{q:'',filter:'all'}},toolbars={};
+const text=(e,v)=>{if(e&&e.textContent!==v)e.textContent=v};
+const cls=(e,n,on)=>{if(e&&e.classList.contains(n)!==!!on)e.classList.toggle(n,!!on)};
+const attr=(e,k,v)=>{if(e&&e.getAttribute(k)!==String(v))e.setAttribute(k,String(v))};
+const icon=(kind)=>{const paths={service:'M14 3h7v7M21 3l-9 9M10 3H3v18h18v-7',tasks:'M9 6h12M9 12h12M9 18h12M3 6h.01M3 12h.01M3 18h.01',settings:'M4 7h16M4 17h16M8 4v6M16 14v6'};return `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${paths[kind]||paths.settings}"/></svg>`};
+function toolbar(pg,host){
+ let t=toolbars[pg];if(t?.isConnected)return t;
+ t=document.createElement('section');t.className='x11-toolbar';t.dataset.x11Page=pg;t.setAttribute('aria-label','사업 검색 및 보기');
+ t.innerHTML=`<div class="x11-tools-top"><label class="x11-search"><span>사업 검색</span><input type="search" placeholder="사업명 검색" autocomplete="off" spellcheck="false" aria-label="${pg==='online'?'온라인':'오프라인'} 사업명 검색"></label><div class="x11-filter" role="group" aria-label="사업 필터"><button type="button" data-x11-filter="all" aria-pressed="true">전체</button><button type="button" data-x11-filter="issues" aria-pressed="false">미해결 업무</button><button type="button" data-x11-filter="missing" aria-pressed="false">매출 미등록</button></div></div><div class="x11-tools-bottom"><span class="x11-result" role="status" aria-live="polite"></span><div><button type="button" class="x11-reset" data-x11-sort aria-pressed="false">매출 높은 순</button><button type="button" class="x11-reset" data-x11-reset>초기화</button></div></div><p class="x11-empty-results" hidden>일치하는 사업이 없습니다. 검색어나 필터를 바꿔보세요.</p>`;
+ host.before(t);toolbars[pg]=t;
+ t.querySelector('input').value=state[pg].q;
+ t.addEventListener('input',e=>{if(e.target.matches('input[type=search]')){state[pg].q=e.target.value;refresh()}});
+ t.addEventListener('click',e=>{const f=e.target.closest('[data-x11-filter]');if(f){state[pg].filter=f.dataset.x11Filter;refresh()}if(e.target.closest('[data-x11-reset]')){state[pg]={q:'',filter:'all'};t.querySelector('input').value='';refresh();t.querySelector('input').focus()}if(e.target.closest('[data-x11-sort]'))host.querySelector('[data-x5sort]')?.click()});
+ t.addEventListener('keydown',e=>{if(e.key==='Escape'&&e.target.matches('input[type=search]')){state[pg].q='';e.target.value='';refresh()}});
+ return t;
+}
+function field(input,label){
+ attr(input,'aria-label',label);
+ if(input.closest('.x11-field'))return;
+ const wrap=document.createElement('label');wrap.className='x11-field';const span=document.createElement('span');span.textContent=label;input.before(wrap);wrap.append(span,input);
+}
+function prepare(card,idx,total,sorted){
+ const heading=card.querySelector('h3');if(!heading)return;
+ const id=card.querySelector('[data-x5iss2]')?.dataset.x5iss2;if(!id)return;
+ attr(card,'data-x11-id',id);attr(card,'aria-label',heading.textContent.trim()+' 사업 현황');attr(card,'role','region');
+ if(!card.dataset.x11Prepared){
+  card.dataset.x11Prepared='1';
+  const head=heading.parentElement;head.classList.add('x11-card-head');
+  const goal=[...card.children].find(el=>el!==head&&el.tagName==='DIV'&&el.querySelector(':scope>small')&&el.querySelector(':scope>b'));
+  goal?.classList.add('x11-goal');
+  const row=card.querySelector('[data-x5iss2]')?.parentElement;
+  const more=document.createElement('details');more.className='x11-more';more.innerHTML='<summary>관리</summary><div class="x11-more-body"></div>';
+  const extra=more.querySelector('div');
+  const issue=card.querySelector('[data-x5iss2]');let service=row?.querySelector(':scope>a[href]');
+  if(row&&!service){try{const known=(SC[id]?.links||[]).find(l=>l.main);const raw=known&&((typeof overrides==='object'&&overrides?.[known.k])||known.u);if(raw){const url=new URL(raw);if(url.protocol==='https:'&&!url.username&&!url.password){const old=row.querySelector(':scope>[data-x5open]');if(old){const a=document.createElement('a');a.className='chip';a.href=url.href;a.target='_blank';a.rel='noopener';old.replaceWith(a);service=a}}}}catch(_){}}
+  const opens=[...(row?.querySelectorAll('[data-x5open]')||[])];
+  if(row){
+   row.classList.add('x11-actions');
+   if(service){const label=card.closest('#x5-off')?'ERP 열기':'서비스 열기';service.innerHTML=icon('service')+'<span>'+label+'</span>';service.setAttribute('aria-label',heading.textContent.trim()+' '+label+' · 새 탭');}
+   else if(opens[0]){const open=opens.shift();open.innerHTML=icon('settings')+'<span>연결 설정</span>';attr(open,'aria-label',heading.textContent.trim()+' 연결 설정');}
+   [...row.children].forEach(el=>{if(el!==issue&&el!==service&&el!==row.querySelector('[data-x5open]'))extra.append(el)});
+   // After moving other controls, put all remaining settings prompts in management.
+   [...row.querySelectorAll('[data-x5open]')].slice(service?0:1).forEach(el=>extra.append(el));
+   row.append(more);
+  }
+  const set=card.querySelector('details[data-x5d^="set-"]');if(set){set.classList.add('x11-settings');text(set.querySelector('summary'),'매출·사업 설정');}
+  const ck=card.querySelector('details[data-x5d^="ck-"]');ck?.classList.add('x11-checklist');
+  const form=card.querySelector('form[data-x5iss]');if(form){const add=document.createElement('details');add.className='x11-add';add.innerHTML='<summary>이슈 등록</summary>';form.before(add);add.append(form);}
+  const empty=document.createElement('p');empty.className='x11-data-empty';empty.textContent='매출 자료를 등록하면 목표·손익이 표시됩니다.';empty.hidden=true;
+  const metrics=card.querySelector('.x5k');if(metrics)metrics.before(empty);
+ }
+ const actions=card.querySelector('.x11-actions'),extra=actions?.querySelector('.x11-more-body');
+ if(actions&&extra){const first=actions.querySelector(':scope>a[href],:scope>[data-x5open]');[...actions.children].forEach(el=>{if(el!==first&&!el.matches('[data-x5iss2],.x11-more'))extra.append(el)})}
+ const issue=card.querySelector('[data-x5iss2]');const count=Number((issue?.textContent.match(/\d+/)||['0'])[0]);
+ if(issue){const label='업무 '+count+'건';if(issue.querySelector('span')?.textContent!==label)issue.innerHTML=icon('tasks')+'<span>'+label+'</span>';attr(issue,'aria-label',heading.textContent.trim()+' 미해결 업무 '+count+'건');cls(issue,'x11-has-issues',count>0)}
+ card.querySelectorAll('[data-x5mv]').forEach(b=>{const before=b.dataset.x5mv.endsWith(':-1');text(b,before?'순서 앞으로':'순서 뒤로');b.disabled=sorted||(before?idx===0:idx===total-1);attr(b,'aria-label',heading.textContent.trim()+' '+b.textContent);attr(b,'title',sorted?'기본 순서 보기에서 변경할 수 있습니다':b.textContent)});
+ card.querySelectorAll('[data-x5doc]').forEach(b=>text(b,'관련 서류 '+(b.textContent.match(/\d+/)||['0'])[0]+'건'));
+ card.querySelectorAll('[data-x5money]').forEach(b=>text(b,'자금 장부'));
+ card.querySelectorAll('[data-x5open]').forEach(b=>{if(!b.closest('.x11-actions')||b.closest('.x11-more'))text(b,'사업 설정');});
+ // Remove repeated setup prompts; the full settings disclosure stays reachable.
+ card.querySelectorAll('.x11-goal [data-x5open]').forEach(b=>{const s=document.createElement('span');s.className='x11-unset';s.textContent='미설정';b.replaceWith(s)});
+ const set=card.querySelector('.x11-settings');
+ if(set){
+  const names=[['[data-x5t]','월 매출 목표 (원)'],['[data-x5c$=":n"]','책임자'],['[data-x5c$=":p"]','연락처'],['[data-x5l]','관리 사이트 주소'],['[data-x5m]','사업 메모'],['form[data-x5sale] input[name=d]','매출 날짜'],['form[data-x5sale] input[name=a]','매출 금액 (원)']];
+  names.forEach(([sel,label])=>{const input=set.querySelector(sel);if(input)field(input,label)});
+  set.querySelectorAll('[data-x5t],input[name=a]').forEach(i=>attr(i,'inputmode','numeric'));
+  set.querySelectorAll('[data-x5c$=":p"]').forEach(i=>attr(i,'type','tel'));
+  set.querySelectorAll('[data-x5l]').forEach(i=>{attr(i,'inputmode','url');attr(i,'spellcheck','false');attr(i,'placeholder','https://…')});
+ }
+ const input=card.querySelector('form[data-x5iss] input');if(input){attr(input,'aria-label',heading.textContent.trim()+' 새 이슈');attr(input,'placeholder','해결할 내용을 입력하세요');}
+ card.querySelectorAll('[data-x5cka]').forEach(i=>{attr(i,'aria-label',heading.textContent.trim()+' 체크리스트 항목 추가');attr(i,'placeholder','항목 입력 후 Enter')});
+ let missing=false;const visibleMetrics=[];
+ card.querySelectorAll('.x5k>div').forEach((m,i)=>{const label=m.querySelector('small')?.textContent.trim()||'',v=m.querySelector('b')?.textContent.trim()||'';const absent=/자료 미입력|수집 대기/.test(v);cls(m,'x11-missing-metric',absent);cls(m,'x11-main-metric',i===0&&!absent);cls(m,'x11-money-metric',/매출|이익|MRR|평균/.test(label));if(!absent)visibleMetrics.push(m);if(absent&&/이번 달|이익|월말/.test(label))missing=true;});
+ visibleMetrics.forEach(m=>cls(m,'x11-only-metric',visibleMetrics.length===1));
+ cls(card,'x11-no-data',missing);const empty=card.querySelector('.x11-data-empty');if(empty)empty.hidden=!missing;
+ const business=DATA.사업부.find(s=>s.id===id);const registered=business&&window.X9?!!window.X9.records(business):!missing;
+ return {id,name:heading.textContent.trim(),issues:count,registered};
+}
+let queued=false,observer;
+function refresh(){
+ observer?.disconnect();
+ try{
+  const pg=document.body.dataset.page;
+  cls(document.body,'x11-business-page',['online','offline'].includes(pg));
+  const payments=document.getElementById('x10-payments');
+  if(payments){const chart=payments.querySelector('.x10-chart');if(chart&&!chart.closest('.x11-payment-trend')){const d=document.createElement('details');d.className='x11-payment-trend';d.innerHTML='<summary>6개월 결제 추세</summary>';chart.before(d);d.append(chart)}}
+  for(const t of Object.values(toolbars))t.hidden=t.dataset.x11Page!==pg||!TEAM.owner||!!TEAM.viewAs;
+  if(!['online','offline'].includes(pg))return;
+  const host=document.getElementById(pg==='online'?'x5-onl':'x5-off');if(!host||!TEAM.owner||TEAM.viewAs)return;
+  const tools=toolbar(pg,host);tools.hidden=false;
+  host.classList.add('x11-host');
+  const grid=host.querySelector('.x3g');grid?.classList.add('x11-business-grid');
+  const sort=host.querySelector('[data-x5sort]'),sorted=sort?.getAttribute('aria-pressed')==='true';if(sort)text(sort,sorted?'기본 순서로 보기':'매출 높은 순');
+  const sortButton=tools.querySelector('[data-x11-sort]');text(sortButton,sorted?'기본 순서로':'매출 높은 순');attr(sortButton,'aria-pressed',sorted);
+  const sortrow=sort?.parentElement;if(sortrow){sortrow.classList.add('x11-suggestions');if(!sortrow.closest('details')){const d=document.createElement('details');d.className='x11-assist';d.innerHTML='<summary>AI 질문</summary>';sortrow.before(d);d.append(sortrow)}}
+  const legacy=document.getElementById('x3-online');if(pg==='online'&&legacy&&!legacy.closest('.x11-legacy-tools')){const d=document.createElement('details');d.className='x11-legacy-tools';d.innerHTML='<summary>상세 운영 도구 · 지표·매출·비용</summary>';legacy.before(d);d.append(legacy)}
+  host.querySelectorAll('.x3>.x5k:first-child b').forEach(b=>cls(b,'x11-missing-value',/자료 미입력|수집 대기/.test(b.textContent)));
+  const totals=host.querySelector('.x3>.x5k:first-child');if(totals){const d=document.createElement('details');d.className='x11-totals';d.innerHTML='<summary>사업 합계</summary>';totals.before(d);d.append(totals);const ids=[...host.querySelectorAll('[data-x5iss2]')].map(b=>b.dataset.x5iss2);d.open=ids.some(id=>{const s=DATA.사업부.find(x=>x.id===id);return s&&window.X9?.records(s)})}
+  host.querySelectorAll('.x3>.s2c:not(.x5card)').forEach(el=>{if(!el.closest('details')){const d=document.createElement('details');d.className='x11-membership';d.innerHTML='<summary>사업 목록 관리</summary>';el.before(d);d.append(el)}});
+  const all=[...host.querySelectorAll('.x5card')],s=state[pg],q=s.q.trim().toLocaleLowerCase('ko-KR');let visible=0;
+  all.forEach((card,i)=>{const info=prepare(card,i,all.length,sorted);if(!info)return;const show=(!q||info.name.toLocaleLowerCase('ko-KR').includes(q))&&(s.filter==='all'||s.filter==='issues'&&info.issues>0||s.filter==='missing'&&!info.registered);cls(card,'x11-filtered',!show);if(show)visible++});
+  tools.querySelectorAll('[data-x11-filter]').forEach(b=>attr(b,'aria-pressed',b.dataset.x11Filter===s.filter));
+  text(tools.querySelector('.x11-result'),`${visible} / ${all.length}개 사업`);
+  tools.querySelector('.x11-empty-results').hidden=visible>0;
+  cls(tools,'x11-filter-active',!!q||s.filter!=='all');
+ }finally{observer?.observe(main,{subtree:true,childList:true,characterData:true})}
+}
+function schedule(){if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;refresh()})}
+observer=new MutationObserver(records=>{if(records.some(r=>!r.target.parentElement?.closest('.x11-toolbar')))schedule()});
+main.addEventListener('click',e=>{const b=e.target.closest('.x11-actions>[data-x5open]');if(!b)return;const card=b.closest('.x5card'),set=card.querySelector('.x11-settings');if(set){e.preventDefault();e.stopPropagation();set.open=true;set.querySelector('[data-x5l]')?.focus()}},true);
+main.addEventListener('click',e=>{if(document.body.classList.contains('x11-business-page')&&e.target.closest('[data-s2q]')){document.body.classList.add('x11-command-open');assistant.setAttribute('aria-expanded','true');assistant.textContent='입력창 닫기'}},true);
+const oldPage=setPage;setPage=function(p){oldPage(p);schedule()};const oldRender=renderExtra;renderExtra=function(){oldRender();schedule()};
+const css=document.createElement('style');css.textContent=`
+.x11-toolbar[hidden],.x11-filtered{display:none!important}.x11-toolbar{margin:0 0 16px;padding:14px 16px;background:var(--hull);border:1px solid var(--line);border-radius:12px;color:var(--ice)}
+.x11-host .x5k b.x6z{opacity:1;color:var(--ice)!important}.x11-assistant{display:none;position:fixed;right:24px;bottom:24px;z-index:65;min-height:42px;border:1px solid var(--line);border-radius:10px;background:var(--hull);color:var(--ice);padding:10px 16px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px #0001}
+@media(min-width:861px){body.x11-business-page .x11-assistant{display:block}body.x11-business-page:not(.x11-command-open) .cmdwrap:not(:has(#cmd-out:not([hidden]))){display:none!important}body.x11-business-page.x11-command-open .x11-assistant{bottom:96px}}
+body.x11-business-page .x6toc,body.x11-business-page .x9-guide,body.x11-business-page .x6row:has([data-x6go=offline]){display:none!important}.x11-host .x11-only-metric{grid-column:1/-1}.x11-host .x11-totals b.x11-missing-value{font-size:0!important}.x11-missing-value:after{content:'—';font-size:21px;color:var(--mute)}.x11-suggestions [data-x5sort]{display:none!important}.x11-legacy-tools{margin-top:18px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--hull);color:var(--mute)}.x11-legacy-tools>summary{font-size:13px;cursor:pointer;min-height:30px}.x11-legacy-tools[open]>summary{margin-bottom:12px}.x11-payment-trend>summary{font-size:12px;color:var(--mute);cursor:pointer;min-height:28px}.x11-payment-trend[open]>summary{margin-bottom:10px}.x11-totals{margin:0 0 10px}.x11-totals>summary{font-size:12px;min-height:30px;color:var(--mute);cursor:pointer}.x11-totals .x5k{margin-top:6px}.x11-totals .x5k>div{border:1px solid var(--line);background:var(--hull);padding:12px}.x11-totals .x5k b{font-size:20px}
+.x11-tools-top{display:flex;gap:16px;align-items:flex-end;justify-content:space-between}.x11-search{display:grid;gap:5px;flex:1;max-width:340px;min-width:160px}.x11-search>span{font-size:11px;color:var(--mute);font-weight:700}.x11-search input{width:100%;min-width:0;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;padding:9px 11px;background:var(--void);color:var(--ice);font:inherit;font-size:14px;min-height:40px}
+.x11-filter{display:flex;gap:4px;padding:4px;border-radius:9px;background:var(--hull2);flex-wrap:wrap}.x11-filter button{min-height:34px;border:0;background:transparent;color:var(--mute);border-radius:6px;padding:6px 11px;font:inherit;font-size:12px;font-weight:600;white-space:nowrap}.x11-filter button[aria-pressed=true]{background:var(--hull);color:var(--ice);box-shadow:0 1px 3px #0001}.x11-tools-bottom{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-top:10px}.x11-result{font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums}.x11-reset{border:0;border-radius:6px;background:transparent;color:var(--mute);font:inherit;font-size:12px;padding:5px 8px;cursor:pointer;min-height:32px}.x11-filter-active .x11-reset{color:var(--cyan);font-weight:700}.x11-empty-results{padding:18px 0 4px;margin:0;font-size:13px;color:var(--mute)}
+.x11-host .x11-business-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:16px;align-items:start}.x11-host .x5card{border:1px solid var(--line)!important;border-radius:14px;padding:20px;box-shadow:none!important;min-width:0;background:var(--hull);color:var(--ice);overflow:visible;display:flex;flex-direction:column;gap:0}
+.x11-card-head{display:flex!important;flex-direction:column;align-items:flex-start!important;gap:4px!important;margin:0 0 8px}.x11-card-head h3{font-size:19px!important;line-height:1.35;font-weight:800;letter-spacing:-.025em;overflow-wrap:anywhere}.x11-card-head>small{font-size:12px;color:var(--mute);line-height:1.6;overflow-wrap:anywhere;max-width:100%}.x11-host .x9-biz-status{font-size:11px;margin:0 0 12px;line-height:1.5;color:var(--mute)}
+.x11-goal{display:flex!important;align-items:center;gap:8px;padding:10px 0 6px;margin-top:0!important;border-top:1px solid var(--line);font-size:12px}.x11-goal>small{color:var(--mute);line-height:1.6;min-width:0}.x11-goal>b{font-size:13px;white-space:nowrap}.x11-unset{font-size:12px;color:var(--mute)}.x11-host .x5card>.s2bar{height:4px!important;border-radius:4px;margin:2px 0 12px;background:var(--hull2)}
+.x11-host .x5card .x5k{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:8px 0 12px}.x11-host .x5card .x5k>div{border-radius:0;background:var(--hull);padding:10px 12px;min-width:0}.x11-host .x5card .x5k small{font-size:11px;color:var(--mute);line-height:1.45;margin-bottom:4px}.x11-host .x5card .x5k b{display:block;font-size:17px;line-height:1.4;font-weight:700;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}.x11-host .x5card .x5k .x11-main-metric{grid-column:1/-1;background:var(--hull2);padding:12px}.x11-host .x5card .x5k .x11-main-metric b{font-size:26px;letter-spacing:-.02em}.x11-host .x5card .x5k .x11-missing-metric{display:none}.x11-host .x5card.x11-no-data .x5k:has(>.x11-missing-metric:only-child){display:none}.x11-data-empty{padding:12px;margin:8px 0 12px;border:1px dashed var(--line);border-radius:8px;font-size:12px;line-height:1.6;color:var(--mute);background:var(--hull2)}.x11-data-empty[hidden]{display:none}.x11-host .x5hint{display:none}
+.x11-host .x11-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:2px 0 12px;padding-top:12px;border-top:1px solid var(--line)}.x11-host .x11-actions>.chip{display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:1 1 100px;min-height:38px;box-sizing:border-box;border-radius:8px!important;padding:8px 10px!important;white-space:nowrap;color:var(--ice)!important;background:var(--hull)!important;font-size:12px!important;line-height:1.4;border:1px solid var(--line);text-decoration:none}.x11-actions svg{width:14px;height:14px;flex:none}.x11-host .x11-actions>.x11-has-issues{background:var(--hull2)!important;border-color:var(--mute)}
+.x11-more{position:relative;flex:0 0 auto;margin:0!important}.x11-more>summary{list-style:none;display:flex;align-items:center;gap:4px;min-height:38px;padding:6px 8px;box-sizing:border-box;font-size:12px;color:var(--mute);border-radius:7px;cursor:pointer}.x11-more>summary:after{content:'⌄';font-size:15px}.x11-more>summary::-webkit-details-marker{display:none}.x11-more[open]{flex-basis:100%}.x11-more[open]>summary{color:var(--ice);font-weight:700}.x11-more-body{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:10px;background:var(--hull2);border-radius:8px;margin-top:4px}.x11-more-body>.chip{border-radius:6px!important;min-height:34px;font-size:12px!important;padding:6px 9px!important;white-space:nowrap}.x11-more-body>small{flex-basis:100%!important;text-align:left!important;font-size:12px;color:var(--mute);line-height:1.8}.x11-host button:disabled{opacity:.4;cursor:default}.x11-host .x5card>.x3card{margin:0 0 6px;padding:9px 10px;border-radius:8px;line-height:1.5;gap:10px;min-width:0}.x11-host .x5card>.x3card>span{font-size:12px;overflow-wrap:anywhere}.x11-host .x5card>.x3card>small{font-size:11px;white-space:nowrap}
+.x11-host .x5card>.x11-checklist,.x11-host .x5card>.x11-add,.x11-host .x5card>.x11-settings{border-top:1px solid var(--line);padding:10px 0 0;margin-top:10px}.x11-host .x5card>details>summary{font-size:12px!important;color:var(--mute)!important;line-height:1.6;cursor:pointer;min-height:28px}.x11-host .x5card>details[open]>summary{color:var(--ice)!important;font-weight:700;margin-bottom:10px}.x11-host .x5ck{gap:8px;margin:8px 0}.x11-host .x5ck label{font-size:13px;line-height:1.5;align-items:flex-start;min-height:28px}.x11-host .x5ck input[type=checkbox]{margin:3px 0 0;flex:none;accent-color:var(--cyan)}.x11-host .x5ck label.d span{text-decoration-thickness:1px;opacity:.8}.x11-host .x11-settings>.x3f{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:end;margin:8px 0}.x11-field{display:grid!important;gap:5px;min-width:0;margin:0!important;font-size:12px}.x11-field>span{font-size:11px;color:var(--mute);line-height:1.4}.x11-field:has([data-x5l]),.x11-field:has([data-x5m]){grid-column:1/-1}.x11-host input:not([type=checkbox]){box-sizing:border-box;min-width:0;width:100%;min-height:40px;border:1px solid var(--line);background:var(--void);color:var(--ice);border-radius:7px;padding:9px 10px;font:inherit;font-size:13px;line-height:1.4}.x11-host input::placeholder{color:var(--mute);opacity:.8}.x11-host .x11-add form{display:flex;gap:8px;flex-wrap:nowrap}.x11-host .x11-add input{flex:1}.x11-host .x11-add button{flex:0 0 auto;min-height:40px;padding:8px 12px;border-radius:7px}
+.x11-assist,.x11-membership{margin:10px 0 14px;color:var(--mute)}.x11-assist>summary,.x11-membership>summary{font-size:12px;min-height:32px;cursor:pointer;line-height:1.6}.x11-assist .x11-suggestions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.x11-suggestions .chip{border-radius:7px;min-height:34px;font-size:12px}.x11-membership>.s2c{margin-top:10px!important;border-radius:10px;box-shadow:none}.x11-host>.x3>.x5k{margin:0 0 12px;gap:8px}.x11-host>.x3>.x5k>div{padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--hull)}.x11-host>.x3>.x5k b{font-size:21px}.x11-host .x9-coverage{font-size:11px;line-height:1.6;margin:0 0 10px;color:var(--mute)}
+.x11-toolbar button:focus-visible,.x11-host button:focus-visible,.x11-host a:focus-visible,.x11-host summary:focus-visible,.x11-host input:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}.x11-toolbar button,.x11-host button,.x11-host a,.x11-host summary{-webkit-tap-highlight-color:transparent;touch-action:manipulation}.x11-host .x11-actions>.chip:hover,.x11-reset:hover{background:var(--hull2)!important}.x11-host .x5card:focus-within{border-color:var(--mute)!important}body.x6hide .x11-money-metric b{filter:blur(7px)}
+@media(min-width:1500px){.x11-host .x11-business-grid{gap:20px}.x11-host .x5card{padding:22px}}
+@media(max-width:1000px){.x11-host .x11-business-grid{grid-template-columns:1fr!important}.x11-tools-top{flex-wrap:wrap}.x11-search{max-width:none;flex-basis:100%}.x11-filter{width:100%;box-sizing:border-box}.x11-filter button{flex:1}}
+@media(max-width:600px){.x11-toolbar{padding:12px;border-radius:10px;margin-bottom:12px}.x11-tools-top{gap:10px}.x11-search input{font-size:16px;min-height:44px}.x11-filter button{min-height:38px;padding:6px 8px;font-size:11px}.x11-tools-bottom{margin-top:7px}.x11-host .x5card{padding:16px;border-radius:12px}.x11-host .x11-business-grid{gap:12px}.x11-card-head h3{font-size:18px!important}.x11-host .x11-actions>.chip{min-height:42px;font-size:12px!important}.x11-more>summary{min-height:42px}.x11-host .x5card .x5k .x11-main-metric b{font-size:24px}.x11-host input:not([type=checkbox]){font-size:16px;min-height:44px}.x11-host .x11-add button{min-height:44px}.x11-host .x5card>details>summary{min-height:34px}.x11-host .x11-settings>.x3f{gap:10px}.x11-host .x5card>.x3card{align-items:flex-start;flex-wrap:wrap}.x11-host .x5card>.x3card>small{margin-left:auto}.x11-host>.x3>.x5k{grid-template-columns:repeat(2,minmax(0,1fr))!important}.x11-host>.x3>.x5k>div:last-child{grid-column:1/-1}.x11-host>.x3>.x5k b{font-size:19px}.x11-membership label{min-height:36px}}
+@media(max-width:360px){.x11-host .x11-settings>.x3f{grid-template-columns:1fr}.x11-host .x5card{padding:12px}.x11-host .x11-actions>.chip{flex-basis:95px}.x11-filter button{font-size:10px}}
+@media(prefers-reduced-motion:reduce){.x11-host *,.x11-toolbar *{transition:none!important}}
+@media print{.x11-toolbar,.x11-more,.x11-add,.x11-settings,.x11-membership,.x11-assist{display:none!important}.x11-host .x5card{break-inside:avoid;box-shadow:none}.x11-host .x11-business-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+`;document.head.appendChild(css);
+schedule();window.X11={refresh:schedule};
+})();
+
 })();
 
 </script>
