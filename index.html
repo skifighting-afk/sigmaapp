@@ -3673,11 +3673,19 @@ body[data-page=todo] .x6toc{display:none!important}
 `;document.head.appendChild(st);
 
 /* ── 데이터 ── */
-(async()=>{try{db=await window.claude.use('db');db.collection('todo').onSnapshot(q=>{ROWS=[];q.docs.forEach(d=>{if(d.id==='_cfg'){const c=d.data()||{};CFG={boards:[...BOARDS0,...(c.boards||[]).filter(b=>!BOARDS0.includes(b)&&!OLDB.includes(b))],people:PPL0.map(p=>p[0])};return}ROWS.push({id:d.id,...d.data()})});/* 예시로 넣었던 lt01~08 정리 (대표 요청) */const seed=ROWS.filter(r=>/^lt0[1-8]$/.test(r.id));if(seed.length&&own()){ROWS=ROWS.filter(r=>!seed.includes(r));seed.forEach(r=>ref(r.id).delete().catch(()=>{}))}draw()},()=>{})}catch(_){}})();
+(async()=>{try{db=await window.claude.use('db');db.collection('todo').onSnapshot(q=>{ROWS=[];q.docs.forEach(d=>{if(d.id==='_cfg'){const c=d.data()||{};CFG={boards:[...BOARDS0,...(c.boards||[]).filter(b=>!BOARDS0.includes(b)&&!OLDB.includes(b))],people:PPL0.map(p=>p[0])};return}ROWS.push({id:d.id,...d.data()})});/* 예시로 넣었던 lt01~08 정리 (대표 요청) */const seed=ROWS.filter(r=>/^lt0[1-8]$/.test(r.id));if(seed.length&&own()){ROWS=ROWS.filter(r=>!seed.includes(r));seed.forEach(r=>ref(r.id).delete().catch(()=>{}))}if(own())ROWS.forEach(r=>{const b=guess(r.작업||'').보드;if(b&&b!==r.보드&&(!r.보드||r.보드===BOARDS0[0]||OLDB.includes(r.보드)))upd(r.id,{보드:b})});draw()},()=>{})}catch(_){}})();
 const ref=id=>db.collection('todo').doc(id);
 const toast=(m,b,ms)=>window.X6TOAST&&window.X6TOAST(m,b,ms);
 async function upd(id,patch){const r=ROWS.find(x=>x.id===id);if(!r)return;Object.assign(r,patch);draw();await tWrite(()=>ref(id).update({...patch,갱신:nowISO(),수정자:mySeat()||''}))}
-async function addRow(d){const r=db.collection('todo').doc();const row={보드:V.board==='전체'?(CFG.boards[0]||'기본'):V.board,날짜:td(),담당:[],작업:'',우선:'',마감:'',상태:'',진행:null,생성:nowISO(),갱신:nowISO(),작성:mySeat()||'',...d};ROWS.push({id:r.id,...row});draw();await tWrite(()=>r.set(row));return r.id}
+/* 입력 글자에서 브랜드·담당·마감·우선 자동 인식 */
+const BR=[['척척','척척사장'],['오마이','오마이왕국'],['메이드','오마이왕국'],['아랑','아랑스키스쿨'],['체인','체인본부'],['홍천','체인본부'],['렌탈','렌탈샵'],['인싸','렌탈샵'],['세이프키즈','렌탈샵'],['+ev','+EV'],['플러스','+EV'],['홀덤','+EV'],['atz','ATZ MACH Agent'],['마하','ATZ MACH Agent'],['mach','ATZ MACH Agent'],['위디드','위디드'],['월간핵심','월간핵심추진과제']];
+const WHO=[['대표','대표님'],['이사','이사님'],['박상진','박상진'],['상진','박상진']];
+function guess(t){const l=t.toLowerCase(),o={};const b=BR.find(([k])=>l.includes(k));if(b)o.보드=b[1];
+ const w=WHO.filter(([k])=>t.includes(k)).map(x=>x[1]);if(w.length)o.담당=[...new Set(w)];
+ const m=t.match(/(\d{1,2})[\/.월]\s?(\d{1,2})일?/);if(m){const y=kst().getFullYear();o.마감=`${y}-${String(m[1]).padStart(2,'0')}-${String(m[2]).padStart(2,'0')}`}
+ else if(/오늘/.test(t))o.마감=td();else if(/모레/.test(t))o.마감=addD(2);else if(/내일/.test(t))o.마감=addD(1);else if(/금요일|이번\s?주/.test(t))o.마감=friday();else if(/다음\s?주/.test(t))o.마감=addD(7);
+ if(/긴급|급함|급하게|asap/i.test(t))o.우선='최우선순위';else if(/중요/.test(t))o.우선='매우중요';return o}
+async function addRow(d){const r=db.collection('todo').doc();const row={보드:V.board==='전체'?'':V.board,날짜:td(),담당:[],작업:'',우선:'',마감:'',상태:'',진행:null,생성:nowISO(),갱신:nowISO(),작성:mySeat()||'',...d};ROWS.push({id:r.id,...row});draw();await tWrite(()=>r.set(row));return r.id}
 async function saveCfg(p){CFG={...CFG,...p};draw();await tWrite(()=>db.collection('todo').doc('_cfg').set(CFG))}
 
 /* ── 걸러내기 ── */
@@ -3758,7 +3766,7 @@ document.addEventListener('click',async e=>{const t=e.target;
  const f2=t.closest('[data-x9f2]');if(f2){V.f=V.f===f2.dataset.x9f2?'':f2.dataset.x9f2;saveV();draw();return}
  const g=t.closest('[data-x9g]');if(g){const k=g.dataset.x9g,el=g.parentElement;el.classList.toggle('fold');FOLD[k]=el.classList.contains('fold');try{localStorage.setItem('x9.fold',JSON.stringify(FOLD))}catch(_){}return}
  if(t.closest('[data-x9newb]')){const n=prompt('새 보드 이름');if(n&&n.trim()&&!CFG.boards.includes(n.trim())){await saveCfg({boards:[...CFG.boards,n.trim()]});V.board=n.trim();saveV();draw()}return}});
-document.addEventListener('submit',async e=>{if(!e.target.matches('[data-x9form]'))return;e.preventDefault();const i=e.target.querySelector('[data-x9add]'),v=i.value.trim();if(!v)return;i.value='';await addRow({작업:v,담당:Q.who.length?Q.who:(V.who?[V.who]:[]),우선:Q.pri,마감:Q.due});setTimeout(()=>{const x=document.querySelector('#x9 input[data-x9add]');x&&x.focus()},30)});
+document.addEventListener('submit',async e=>{if(!e.target.matches('[data-x9form]'))return;e.preventDefault();const i=e.target.querySelector('[data-x9add]'),v=i.value.trim();if(!v)return;i.value='';const g=guess(v);const d={작업:v,담당:Q.who.length?Q.who:(g.담당||(V.who?[V.who]:[])),우선:Q.pri||g.우선||'',마감:Q.due||g.마감||''};if(g.보드)d.보드=g.보드;await addRow(d);if(g.보드&&g.보드!==V.board)toast(g.보드+' 보드에 넣었어요');setTimeout(()=>{const x=document.querySelector('#x9 input[data-x9add]');x&&x.focus()},30)});
 document.addEventListener('change',e=>{const t=e.target;if(!t.closest||!t.closest('#x9'))return;
  if(t.matches('[data-x9done]')){const id=t.closest('[data-id]').dataset.id;const on=t.checked;upd(id,on?{상태:'완료',진행:100}:{상태:'진행중',진행:70});if(on)toast('완료',['되돌리기',()=>upd(id,{상태:'진행중',진행:70})],4000);return}
  if(t.matches('input[type=date][data-x9f]')){upd(t.closest('[data-id]').dataset.id,{[t.dataset.x9f]:t.value});return}
