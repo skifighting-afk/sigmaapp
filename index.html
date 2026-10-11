@@ -3528,7 +3528,7 @@ const STA=[['도와주세요','#b10202','#fff'],['진행중','#11734b','#fff'],[
 const PRG=[[0,'#e8eaed','#3c4043'],[30,'#ffc8aa','#753800'],[50,'#ffe5a0','#473821'],[70,'#d4edbc','#11734b'],[100,'#bfe1f6','#0a53a8']];
 const PPL0=[['대표님','#3d3d3d','#fff'],['이사님','#bfe1f6','#0a53a8'],['박상진','#e6cff2','#5a3286'],];
 const EXTRA=[['#fde2c8','#8a4b08'],['#d7e3fc','#1d3f8f'],['#e4f2d7','#2f6b12'],['#f3d9ec','#7a1f5c']];
-const BOARDS0=['리틀 기획','아랑 비발디','월간핵심추진과제'];
+const BOARDS0=['오마이왕국','아랑스키스쿨','체인본부','렌탈샵','+EV','ATZ MACH Agent','척척사장','위디드','월간핵심추진과제'];const OLDB=['리틀 기획','아랑 비발디'];
 const COLS=[['도와주세요','도와주세요'],['진행중','진행중'],['','시작 전'],['완료','완료']];
 let ROWS=[],CFG={boards:BOARDS0,people:PPL0.map(p=>p[0])},db=null;
 let V={board:'전체',view:'list',who:'',f:'',sort:'pri',showDone:false};try{V={...V,...JSON.parse(localStorage.getItem('x9.v')||'{}')}}catch(_){}
@@ -3658,6 +3658,7 @@ body[data-page=todo] .x6toc{display:none!important}
 .x9empty kbd{background:var(--hull2);border:1px solid var(--line);border-radius:6px;padding:0 6px;font:inherit;font-weight:700}
 .x9donebtn{border:0;background:none;color:var(--mute);font:inherit;font-size:13px;font-weight:700;cursor:pointer;padding:6px 2px;display:inline-flex;gap:6px;align-items:center}
 @media(max-width:980px){.x9r,.x9hd{grid-template-columns:28px minmax(0,1fr) 84px 100px 104px 34px}.x9r .c-pg,.x9hd .c-pg,.x9r .c-st,.x9hd .c-st{display:none}.x9sub{display:flex}.x9sub .s-st,.x9sub .s-pg{display:inline-flex}}
+@media(min-width:701px){.x9tabs{flex-wrap:wrap;overflow:visible}.x9tabs button{padding:9px 11px 10px}}
 @media(max-width:700px){
  .x9hd{display:none}
  .x9r{grid-template-columns:26px minmax(0,1fr) 34px;gap:4px 8px;padding:10px 10px 10px 12px}
@@ -3672,7 +3673,7 @@ body[data-page=todo] .x6toc{display:none!important}
 `;document.head.appendChild(st);
 
 /* ── 데이터 ── */
-(async()=>{try{db=await window.claude.use('db');db.collection('todo').onSnapshot(q=>{ROWS=[];q.docs.forEach(d=>{if(d.id==='_cfg'){const c=d.data()||{};CFG={boards:c.boards&&c.boards.length?c.boards:BOARDS0,people:PPL0.map(p=>p[0])};return}ROWS.push({id:d.id,...d.data()})});/* 예시로 넣었던 lt01~08 정리 (대표 요청) */const seed=ROWS.filter(r=>/^lt0[1-8]$/.test(r.id));if(seed.length&&own()){ROWS=ROWS.filter(r=>!seed.includes(r));seed.forEach(r=>ref(r.id).delete().catch(()=>{}))}draw()},()=>{})}catch(_){}})();
+(async()=>{try{db=await window.claude.use('db');db.collection('todo').onSnapshot(q=>{ROWS=[];q.docs.forEach(d=>{if(d.id==='_cfg'){const c=d.data()||{};CFG={boards:[...BOARDS0,...(c.boards||[]).filter(b=>!BOARDS0.includes(b)&&!OLDB.includes(b))],people:PPL0.map(p=>p[0])};return}ROWS.push({id:d.id,...d.data()})});/* 예시로 넣었던 lt01~08 정리 (대표 요청) */const seed=ROWS.filter(r=>/^lt0[1-8]$/.test(r.id));if(seed.length&&own()){ROWS=ROWS.filter(r=>!seed.includes(r));seed.forEach(r=>ref(r.id).delete().catch(()=>{}))}draw()},()=>{})}catch(_){}})();
 const ref=id=>db.collection('todo').doc(id);
 const toast=(m,b,ms)=>window.X6TOAST&&window.X6TOAST(m,b,ms);
 async function upd(id,patch){const r=ROWS.find(x=>x.id===id);if(!r)return;Object.assign(r,patch);draw();await tWrite(()=>ref(id).update({...patch,갱신:nowISO(),수정자:mySeat()||''}))}
