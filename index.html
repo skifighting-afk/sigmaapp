@@ -3526,7 +3526,7 @@ const td=()=>ymd(kst());const own=()=>TEAM.owner&&!TEAM.viewAs;
 const PRI=[['최우선순위','#b10202','#fff'],['매우중요','#ffcfc9','#b10202'],['높음','#ffe5a0','#473821'],['중간','#d4edbc','#11734b'],['낮음','#bfe1f6','#0a53a8'],['매우낮음','#e8eaed','#3c4043']];
 const STA=[['도와주세요','#b10202','#fff'],['진행중','#11734b','#fff'],['완료','#0a53a8','#fff']];
 const PRG=[[0,'#e8eaed','#3c4043'],[30,'#ffc8aa','#753800'],[50,'#ffe5a0','#473821'],[70,'#d4edbc','#11734b'],[100,'#bfe1f6','#0a53a8']];
-const PPL0=[['대표님','#3d3d3d','#fff'],['이사님','#bfe1f6','#0a53a8'],['박상진','#e6cff2','#5a3286'],['서유민','#ffcfc9','#b10202'],['김찬영','#d4edbc','#11734b']];
+const PPL0=[['대표님','#3d3d3d','#fff'],['이사님','#bfe1f6','#0a53a8'],['박상진','#e6cff2','#5a3286'],];
 const EXTRA=[['#fde2c8','#8a4b08'],['#d7e3fc','#1d3f8f'],['#e4f2d7','#2f6b12'],['#f3d9ec','#7a1f5c']];
 const BOARDS0=['리틀 기획','아랑 비발디','월간핵심추진과제'];
 const COLS=[['도와주세요','도와주세요'],['진행중','진행중'],['','시작 전'],['완료','완료']];
@@ -3672,7 +3672,7 @@ body[data-page=todo] .x6toc{display:none!important}
 `;document.head.appendChild(st);
 
 /* ── 데이터 ── */
-(async()=>{try{db=await window.claude.use('db');db.collection('todo').onSnapshot(q=>{ROWS=[];q.docs.forEach(d=>{if(d.id==='_cfg'){const c=d.data()||{};CFG={boards:c.boards&&c.boards.length?c.boards:BOARDS0,people:c.people&&c.people.length?c.people:PPL0.map(p=>p[0])};return}ROWS.push({id:d.id,...d.data()})});/* 예시로 넣었던 lt01~08 정리 (대표 요청) */const seed=ROWS.filter(r=>/^lt0[1-8]$/.test(r.id));if(seed.length&&own()){ROWS=ROWS.filter(r=>!seed.includes(r));seed.forEach(r=>ref(r.id).delete().catch(()=>{}))}draw()},()=>{})}catch(_){}})();
+(async()=>{try{db=await window.claude.use('db');db.collection('todo').onSnapshot(q=>{ROWS=[];q.docs.forEach(d=>{if(d.id==='_cfg'){const c=d.data()||{};CFG={boards:c.boards&&c.boards.length?c.boards:BOARDS0,people:PPL0.map(p=>p[0])};return}ROWS.push({id:d.id,...d.data()})});/* 예시로 넣었던 lt01~08 정리 (대표 요청) */const seed=ROWS.filter(r=>/^lt0[1-8]$/.test(r.id));if(seed.length&&own()){ROWS=ROWS.filter(r=>!seed.includes(r));seed.forEach(r=>ref(r.id).delete().catch(()=>{}))}draw()},()=>{})}catch(_){}})();
 const ref=id=>db.collection('todo').doc(id);
 const toast=(m,b,ms)=>window.X6TOAST&&window.X6TOAST(m,b,ms);
 async function upd(id,patch){const r=ROWS.find(x=>x.id===id);if(!r)return;Object.assign(r,patch);draw();await tWrite(()=>ref(id).update({...patch,갱신:nowISO(),수정자:mySeat()||''}))}
@@ -3727,7 +3727,7 @@ function draw(){if(document.body.dataset.page!=='todo')return;const el=$('x9');i
 let menu=null;const closeMenu=()=>{if(menu){menu.remove();menu=null}};
 function place(btn){document.body.appendChild(menu);const b=btn.getBoundingClientRect(),m=menu.getBoundingClientRect();let top=b.bottom+4,left=b.left;if(top+m.height>innerHeight-8)top=Math.max(8,b.top-m.height-4);if(left+m.width>innerWidth-8)left=innerWidth-m.width-8;menu.style.top=top+'px';menu.style.left=Math.max(8,left)+'px';const f=menu.querySelector('button,input');f&&f.focus()}
 function optMenu(btn,field,cur,onPick){closeMenu();menu=document.createElement('div');menu.className='x9menu';menu.setAttribute('role','listbox');
- if(field==='담당'){const S=new Set(cur||[]);menu.innerHTML=`<div class="ttl">담당 (여러 명 가능)</div>`+CFG.people.map(p=>`<label><input type="checkbox" data-x9pp="${esc(p)}" ${S.has(p)?'checked':''}>${av(p,24)}${esc(p)}</label>`).join('')+`<input type="text" data-x9np placeholder="+ 사람 추가 후 Enter">`;
+ if(field==='담당'){const S=new Set(cur||[]);menu.innerHTML=`<div class="ttl">담당 (여러 명 가능)</div>`+CFG.people.map(p=>`<label><input type="checkbox" data-x9pp="${esc(p)}" ${S.has(p)?'checked':''}>${av(p,24)}${esc(p)}</label>`).join('');
   menu.addEventListener('change',e=>{const c=e.target.closest('[data-x9pp]');if(!c)return;c.checked?S.add(c.dataset.x9pp):S.delete(c.dataset.x9pp);onPick([...S].sort((a,b)=>CFG.people.indexOf(a)-CFG.people.indexOf(b)))});
   menu.addEventListener('keydown',async e=>{const t=e.target;if(!t.matches('[data-x9np]')||e.key!=='Enter'||e.isComposing)return;e.preventDefault();const v=t.value.trim();if(!v)return;if(!CFG.people.includes(v))await saveCfg({people:[...CFG.people,v]});S.add(v);onPick([...S]);closeMenu()})}
  else if(field==='마감'){const O=[['오늘',td()],['내일',addD(1)],['이번 주 금요일',friday()],['다음 주',addD(7)]];menu.innerHTML=O.map(([l,d])=>`<button type="button" class="mi" data-v="${d}">${l}<small style="margin-left:auto;color:var(--mute)">${fd(d)}</small></button>`).join('')+`<div class="sep"></div><label style="padding:4px 8px">${ICO.cal}<input type="date" data-x9qd style="font:inherit;border:0;background:none;color:var(--ice)"></label>${cur?'<button type="button" class="mi" data-v="">마감 없음</button>':''}`;
