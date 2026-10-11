@@ -3220,8 +3220,13 @@ body[data-page=cockpit] [data-pg]:not([data-pg~=cockpit]){display:none!important
 .x8tools button:hover{color:var(--ice);border-color:var(--mute)}
 .s4{grid-column:span 4}.s5{grid-column:span 5}.s6{grid-column:span 6}.s7{grid-column:span 7}.s8{grid-column:span 8}.s12{grid-column:span 12}
 @media(max-width:1100px){.s4,.s5,.s6,.s7,.s8{grid-column:span 12}}
-.x8hero{display:grid;grid-template-columns:minmax(260px,360px) minmax(0,1fr);gap:22px;align-items:center}
-@media(max-width:760px){.x8hero{grid-template-columns:1fr}}
+.x8c{container-type:inline-size}
+.x8hero{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr);gap:28px;align-items:center}
+.x8hero .x8dial{max-width:300px;margin:0 auto}
+.x8askrow{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+.x8brief li{font-size:16px}
+@container (max-width:640px){.x8hero{grid-template-columns:1fr;gap:12px}.x8hero .x8dial{max-width:260px}}
+@container (max-width:420px){.x8ask button[data-x8mic]{display:none}}
 .x8dial{width:100%;height:auto;display:block}
 .x8dial .tk{stroke:var(--line);stroke-width:2}.x8dial .tk.b{stroke:var(--mute);stroke-width:2.5}
 .x8dial .tl{fill:var(--mute);font-size:11px;font-weight:600}
@@ -3299,8 +3304,8 @@ const tipAttr=(title,rows)=>`data-tip='${JSON.stringify([title,rows]).replace(/'
 function spark(vals,c){const v=vals.map(x=>+x||0);if(v.length<2||!v.some(x=>x))return '';const mx=Math.max(...v),mn=Math.min(0,...v),W=120,H=28,sx=i=>i/(v.length-1)*W,sy=x=>H-2-(x-mn)/((mx-mn)||1)*(H-4);
  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><path d="M${v.map((x,i)=>sx(i).toFixed(1)+','+sy(x).toFixed(1)).join('L')}" fill="none" stroke="${c}" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/><circle cx="${sx(v.length-1)}" cy="${sy(v[v.length-1])}" r="2.5" fill="${c}"/></svg>`}
 // 선 그래프: series=[{n,c,v:[]}] labels=[] · 축 하나 · 십자선 + 모든 계열 툴팁
-const LINES={};let lid=0;
-function line(series,labels,o={}){const id='l'+(++lid),W=o.w||640,H=o.h||220,P={l:52,r:14,t:12,b:26},all=series.flatMap(s=>s.v.map(x=>+x||0));
+const LINES={};let lid=0,AW=0;
+function line(series,labels,o={}){const id='l'+(++lid),W=o.w||AW||640,H=o.h||220,P={l:52,r:14,t:12,b:26},all=series.flatMap(s=>s.v.map(x=>+x||0));
  if(!all.some(x=>x))return `<div class="x8empty">${o.empty||'아직 기록이 없어요 · 장부·매출이 쌓이면 자동으로 그려져요'}</div>`;
  let mx=Math.max(...all),mn=Math.min(0,...all);const step=niceStep((mx-mn)/4);mx=Math.ceil(mx/step)*step;mn=Math.floor(mn/step)*step;
  const sx=i=>P.l+i/((labels.length-1)||1)*(W-P.l-P.r),sy=v=>P.t+(mx-v)/((mx-mn)||1)*(H-P.t-P.b);
@@ -3322,12 +3327,12 @@ function bullet(rows,o={}){if(!rows.length)return '<div class="x8empty">사업�
  return `<svg class="x8chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="사업별 이번 달 매출과 목표">${rows.map((r,i)=>{const y=i*rh+6,w=(W-L-R)*((+r.v||0)/mx),tw=(W-L-R)*((+r.t||0)/mx),p=r.t?Math.round(r.v/r.t*100):null,c=p==null?'var(--mute)':p>=90?'var(--green)':p>=60?'var(--amber)':'var(--red)';
   return `<g data-go8="${r.go||''}" ${tipAttr(r.n,[[c,'이번 달',fmt(r.v)+'원'],['','목표',r.t?fmt(r.t)+'원':'미설정'],['','달성',p==null?'—':p+'%']])}><rect x="0" y="${y-3}" width="${W}" height="${rh}" fill="transparent"/><text class="lb" x="${L-10}" y="${y+14}" text-anchor="end">${esc(r.n.length>Math.floor(L/13)?r.n.slice(0,Math.floor(L/13)-1)+'…':r.n)}</text><rect x="${L}" y="${y+4}" width="${W-L-R}" height="12" rx="6" fill="var(--hull2)"/><rect x="${L}" y="${y+4}" width="${Math.max(r.v?4:0,w)}" height="12" rx="6" fill="${c}"/>${r.t?`<rect x="${L+tw-1.5}" y="${y}" width="3" height="20" rx="1.5" fill="var(--ice)"/>`:''}<text x="${W-R+8}" y="${y+14}">${p==null?fmt(r.v):p+'%'}</text></g>`}).join('')}</svg><div class="x8leg"><span><i class="r" style="background:var(--green)"></i>90% 이상</span><span><i class="r" style="background:var(--amber)"></i>60~90%</span><span><i class="r" style="background:var(--red)"></i>60% 미만</span><span><i style="background:var(--ice);width:3px;height:12px"></i>목표</span></div>`}
 // 세로 막대: items=[{n,v,c}]
-function vbars(items,o={}){if(!items.length||!items.some(x=>+x.v))return `<div class="x8empty">${o.empty||'아직 기록이 없어요'}</div>`;const W=o.w||640,H=o.h||200,P={l:46,r:8,t:16,b:26},mx=Math.max(...items.map(x=>+x.v||0)),step=niceStep(mx/4),top=Math.ceil(mx/step)*step||1,bw=(W-P.l-P.r)/items.length,sy=v=>P.t+(top-v)/top*(H-P.t-P.b);
+function vbars(items,o={}){if(!items.length||!items.some(x=>+x.v))return `<div class="x8empty">${o.empty||'아직 기록이 없어요'}</div>`;const W=o.w||AW||640,H=o.h||200,P={l:46,r:8,t:16,b:26},mx=Math.max(...items.map(x=>+x.v||0)),step=niceStep(mx/4),top=Math.ceil(mx/step)*step||1,bw=(W-P.l-P.r)/items.length,sy=v=>P.t+(top-v)/top*(H-P.t-P.b);
  let g='';for(let v=0;v<=top+1e-6;v+=step)g+=`<line class="gl" x1="${P.l}" x2="${W-P.r}" y1="${sy(v)}" y2="${sy(v)}"/><text x="${P.l-6}" y="${sy(v)+4}" text-anchor="end">${fmt(v)}</text>`;
  const every=Math.ceil(items.length/10);
  return `<svg class="x8chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.label||'막대 그래프')}">${g}${items.map((x,i)=>{const h=Math.max(0,sy(0)-sy(+x.v||0)),X=P.l+i*bw+1;return `<g ${tipAttr(x.n,[[x.c||o.c||sc(0),o.unit||'값',fmt(x.v)+(o.suf||'')]])}><rect x="${X-1}" y="${P.t}" width="${bw}" height="${H-P.t-P.b}" fill="transparent"/><path d="M${X},${sy(0)}V${sy(0)-h+Math.min(4,h)}q0,-4 4,-4H${X+bw-6}q4,0 4,4V${sy(0)}Z" fill="${x.c||o.c||sc(0)}"/>${(i%every===0||i===items.length-1)?`<text x="${X+(bw-2)/2}" y="${H-8}" text-anchor="middle">${esc(x.n)}</text>`:''}</g>`}).join('')}</svg>`}
 // 가로 막대 (긴 이름): items=[{n,v,c,sub}]
-function hbars(items,o={}){if(!items.length)return `<div class="x8empty">${o.empty||'없음'}</div>`;const mx=Math.max(1,...items.map(x=>Math.abs(+x.v||0))),W=o.w||640,rh=28,H=items.length*rh+4,L=Math.min(120,W*.3),R=76;
+function hbars(items,o={}){if(!items.length)return `<div class="x8empty">${o.empty||'없음'}</div>`;const mx=Math.max(1,...items.map(x=>Math.abs(+x.v||0))),W=o.w||AW||640,rh=28,H=items.length*rh+4,L=Math.min(120,W*.3),R=76;
  return `<svg class="x8chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.label||'막대 그래프')}">${items.map((x,i)=>{const y=i*rh+4,w=(W-L-R)*Math.abs(+x.v||0)/mx;return `<g ${tipAttr(x.n,[[x.c||sc(0),o.unit||'금액',fmt(x.v)+(o.suf||'원')],...(x.sub?[['',x.sub[0],x.sub[1]]]:[])])}><rect x="0" y="${y-2}" width="${W}" height="${rh}" fill="transparent"/><text class="lb" x="${L-10}" y="${y+13}" text-anchor="end">${esc(x.n.length>Math.floor(L/13)?x.n.slice(0,Math.floor(L/13)-1)+'…':x.n)}</text><rect x="${L}" y="${y+3}" width="${Math.max(3,w)}" height="14" rx="4" fill="${x.c||sc(0)}"/><text x="${L+Math.max(3,w)+8}" y="${y+14}">${fmt(x.v)}${o.suf||''}</text></g>`}).join('')}</svg>`}
 // 깔때기
 function funnel(steps,o={}){const mx=Math.max(1,...steps.map(s=>+s[1]||0)),W=o.w||640,rh=34,H=steps.length*rh;return `<svg class="x8chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="가입 깔때기">${steps.map(([n,v],i)=>{const w=Math.max(6,(W-170)*(+v||0)/mx),x=(W-170-w)/2+70,prev=i?+steps[i-1][1]||0:0,cv=i&&prev&&(+v||0)<=prev?Math.round((+v||0)/prev*100)+'%':'';return `<g ${tipAttr(n,[[sc(i),'인원',(+v||0).toLocaleString()+'명'],...(cv?[['','앞 단계 대비',cv]]:[])])}><rect x="${x}" y="${i*rh+3}" width="${w}" height="${rh-8}" rx="6" fill="${sc(i)}" opacity="${1-i*.12}"/><text class="lb" x="10" y="${i*rh+22}">${esc(n)}</text><text x="${W-10}" y="${i*rh+22}" text-anchor="end">${(+v||0).toLocaleString()}${cv?' · '+cv:''}</text></g>`}).join('')}</svg>`}
@@ -3388,9 +3393,9 @@ function html(){const d=D(),I=insights(d),B=briefing(d,I),M=d.M.slice(-RANGE),G=
 <div class="x8row" data-x8s="hero"><div class="x8c s12"><div class="x8hero"><div>${dial(d.annual,1e10,SIM.on?simAnnual:null)}<div style="text-align:center;margin-top:-6px"><div class="x8big">${fmt(d.annual)}<small style="font-size:.45em;font-weight:700;color:var(--mute)"> 원 / 년</small></div><small style="color:var(--mute)">이번 달 페이스로 1년 환산 · 목표 100억${SIM.on?` · 시뮬레이션 ${fmt(simAnnual)}`:''}</small></div></div>
 <div><h3 style="margin:0;font-size:15px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${ICO.spark} 오늘의 자동 브리핑 <small style="color:var(--mute);font-weight:500"><span class="x8live"></span>LIVE · ${esc(nowStr?nowStr():'')}</small><span style="margin-left:auto;display:flex;gap:4px"><button type="button" class="chip" data-x8say>브리핑 듣기</button><button type="button" class="chip" data-x8print>보고서 인쇄</button></span></h3>
 <ul class="x8brief">${B.map(([lv,t])=>`<li style="--c:${LV[lv][1]}"><i>${ICO[lv]}</i><span>${esc(t)}</span></li>`).join('')}</ul>
-<form class="x8ask" id="x8ask"><input name="q" placeholder="물어보면 그래프로 답해요 · 예) 오마이 6개월 매출" autocomplete="off" value="${esc(AIQ)}"><button type="button" data-x8mic title="말로 묻기" aria-label="말로 묻기" style="background:var(--hull2);color:var(--ice);border:1px solid var(--line)">말로</button><button type="submit">보기</button></form>
+</div></div><div class="x8askrow"><form class="x8ask" id="x8ask"><input name="q" placeholder="물어보면 그래프로 답해요 · 예) 오마이 6개월 매출" autocomplete="off" value="${esc(AIQ)}"><button type="button" data-x8mic title="말로 묻기" aria-label="말로 묻기" style="background:var(--hull2);color:var(--ice);border:1px solid var(--line)">말로</button><button type="submit">보기</button></form>
 <div class="x8sug">${['그룹 12개월 매출','사업별 이번 달 비교','+EV 가입 추이','스레드 조회수','갚을 돈 현황','지연 업무 누가 많아'].map(q=>`<button type="button" data-x8q="${q}">${q}</button>`).join('')}<button type="button" data-x8tv style="border-color:var(--cyan);color:var(--cyan)">회의 모드</button></div>
-<div id="x8ans"></div></div></div></div></div>
+<div id="x8ans"></div></div></div></div>
 <div class="x8kpis" data-x8s="kpi">${kp('이번 달 그룹 매출',fmt(d.cur.rev),mom==null?'':`지난달 대비 ${mom>=0?'+':''}${mom}%`,'','group',spark(G.map(x=>x.rev),sc(0)))}${kp('이번 달 영업이익',fmt(d.cur.pro),d.cur.rev?`이익률 ${Math.round(d.cur.pro/d.cur.rev*100)}%`:'',d.cur.pro<0?'var(--red)':'','group',spark(G.map(x=>x.pro),sc(2)))}${kp('오프라인 오늘 매출',fmt(d.offToday),d.oh.오늘&&d.oh.오늘.목표?`오마이 목표의 ${Math.round((d.oh.오늘.매출||0)/d.oh.오늘.목표*100)}%`:'','','offline')}${kp('+EV 방문 (14일)',visits.reduce((a,b)=>a+b,0).toLocaleString(),`가입 ${d.ev.users||0} · 결제 ${d.ev.paid||0}`,'','online',spark(visits,sc(1)))}${kp('늦은 업무',d.lt.length+'건',`열린 업무 ${d.O.length}건`,d.lt.length?'var(--red)':'','tasks')}${kp('남은 부채',fmt(debtLeft),`받을 돈 ${fmt(recvLeft)}`,'','money')}</div>
 <div class="x8bar" data-x8s="kpi"><small style="color:var(--mute)">기간</small>${[3,6,12].map(n=>`<button type="button" class="chip" data-x8r="${n}" aria-pressed="${RANGE===n}">${n}개월</button>`).join('')}</div>
 <div class="x8row" data-x8s="trend"><div class="x8c s7">${cardTools('trend')}<h3>그룹 매출 · 영업이익 <small>최근 ${RANGE}개월</small></h3><p class="x8sub">손가락·마우스를 올리면 달마다 숫자</p>${line([{n:'매출',c:sc(0),v:G.map(x=>x.rev)},{n:'영업이익',c:sc(2),v:G.map(x=>x.pro)}],M.map(m=>m.slice(2).replace('-','.')),{area:1,label:'그룹 월별 매출과 영업이익',w:cw('trend')})}<div data-x8out="trend"></div></div>
@@ -3454,7 +3459,7 @@ addEventListener('resize',()=>{clearTimeout(measure.t);measure.t=setTimeout(()=>
 
 /* ── 이벤트 ── */
 document.addEventListener('submit',e=>{if(e.target.id!=='x8ask')return;e.preventDefault();const q=e.target.q.value.trim();if(!q)return;AIQ=q;e.target.q.blur();ask(q)});
-function ask(q){const [t,h,data]=answer(q),a=$('x8ans');if(!a)return;a.innerHTML=`<div class="x8c" style="margin-top:12px;padding:12px 14px"><h3>${esc(t)}</h3>${h}<div data-x8out="ans"></div></div>`;aiNote(t,data,a.querySelector('[data-x8out="ans"]'))}
+function ask(q){const a=$('x8ans');if(!a)return;AW=Math.max(280,Math.round(a.clientWidth-30));const [t,h,data]=answer(q);AW=0;a.innerHTML=`<div style="margin-top:14px"><h3>${esc(t)}</h3>${h}<div data-x8out="ans"></div></div>`;aiNote(t,data,a.querySelector('[data-x8out="ans"]'))}
 let I_CACHE=[];
 document.addEventListener('click',e=>{const t=e.target;
  const q=t.closest('[data-x8q]');if(q){AIQ=q.dataset.x8q;const i=document.querySelector('#x8ask input');if(i)i.value=AIQ;ask(AIQ);return}
