@@ -3789,6 +3789,15 @@ window.X9={rows:()=>ROWS};
 const _sp=setPage;setPage=function(g){_sp(g);if(g!=='todo')closeMenu();draw()};const _re=renderExtra;renderExtra=function(){_re();draw()};
 })();
 
+/* ===== SIGMA 10 · 메뉴 맨 아래 로그아웃 ===== */
+(function(){
+const b=document.createElement('button');b.type='button';b.className='x10out';
+b.innerHTML='<i><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></i><span>로그아웃</span>';
+b.onclick=()=>{const o=document.querySelector('#sg-acct [data-out]');if(o)o.click();else location.reload()};
+$('nav').appendChild(b);
+const st=document.createElement('style');st.textContent='nav .x10out{margin-top:12px;color:var(--mute)}nav .x10out:hover{color:var(--red)}';document.head.appendChild(st);
+})();
+
 })();
 
 </script>
